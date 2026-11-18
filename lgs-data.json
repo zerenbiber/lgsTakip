@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "lastUpdated": "2026-11-18",
+  "dataSource": "embedded",
+  "disclaimer": "MEB/ÖDSGM konu bazlı soru dağılımı yayımlamaz. Konu sayıları, yayımlanan soru kitapçıklarını sınıflandıran üçüncü taraf eğitim sitelerinden derlenmiştir. Kaynaklar arasında çelişki olan veya kaynak bulunamayan yıllar 'estimatedYears' içinde işaretlidir.",
+  "exam": {
+    "nextExam": {
+      "name": "LGS 2027",
+      "date": "2027-06-13",
+      "dayOfWeek": "Pazar",
+      "format": "basılı (kâğıt)",
+      "status": "announced",
+      "note": "MEB ÖDSGM 2027 Yılı Sınav Uygulama Takvimi'nde (30 Ekim 2026 duyurusu) yer alır. Başvuru tarihleri ve kılavuz henüz yayımlanmadı (Kasım 2026)."
+    },
+    "sessions": [
+      { "id": "sozel", "name": "Sözel Bölüm (1. oturum)", "questionCount": 50, "durationMin": 75, "subjects": ["turkce", "inkilap", "din", "ingilizce"] },
+      { "id": "sayisal", "name": "Sayısal Bölüm (2. oturum)", "questionCount": 40, "durationMin": 80, "subjects": ["matematik", "fen"] }
+    ],
+    "scoring": {
+      "totalQuestions": 90,
+      "wrongPenalty": "3 yanlış 1 doğruyu götürür (net = doğru − yanlış/3)",
+      "coefficients": { "turkce": 4, "matematik": 4, "fen": 4, "inkilap": 1, "din": 1, "ingilizce": 1 },
+      "maxScore": 500
+    },
+    "pastExams": [
+      { "year": 2021, "scope": "full", "note": "" },
+      { "year": 2022, "scope": "full", "note": "" },
+      { "year": 2023, "scope": "firstSemesterOnly", "date": "2023-06-04", "note": "Deprem nedeniyle yalnızca 8. sınıf 1. dönem konuları sınav kapsamındaydı (MEB, 10 Şubat 2023)." },
+      { "year": 2024, "scope": "full", "note": "" },
+      { "year": 2025, "scope": "full", "note": "Son yılların en zor LGS'si olarak değerlendirildi." },
+      { "year": 2026, "scope": "full", "date": "2026-06-13", "note": "Konu dağılımı verisi sınırlı; çoğu değer tahmini." }
+    ]
+  },
+  "curriculumNote": "2026-2027 eğitim yılında Türkiye Yüzyılı Maarif Modeli 1-2-3, 5-6-7, 9-10-11. sınıflarda uygulanır; 8. sınıf hâlâ önceki (2018 tabanlı) öğretim programıyla okutulmaktadır. 2027 LGS bu 8. sınıf programına göre hazırlanır. Maarif Modeli'ne uyumlu yeni LGS soru modeli MEB'e göre 2028'de başlayacaktır.",
+  "years": [2021, 2022, 2023, 2024, 2025, 2026],
+  "analysisYearsDefault": [2022, 2023, 2024, 2025, 2026],
+  "subjects": [
+    {
+      "id": "turkce",
+      "name": "Türkçe",
+      "shortName": "TR",
+      "color": "#E4572E",
+      "questionCount": 20,
+      "coefficient": 4,
+      "session": "sozel",
+      "averageCorrect": { "2021": 9.41, "2022": 9.22, "2023": 9.99, "2024": 9.63, "2025": 8.40 },
+      "confidence": "medium",
+      "note": "Türkçe beceri temelli bir derstir; konular tema/ünite değil soru türü olarak listelenmiştir. 2025-2026 dağılımı tahminidir.",
+      "topics": [
+        { "id": "tr-parcada-anlam", "name": "Paragrafta (Parçada) Anlam", "semester": 0, "counts": { "2021": 10, "2022": 6, "2023": 7, "2024": 7, "2025": 7, "2026": 7 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-sozel-mantik", "name": "Sözel Mantık / Görsel ve Grafik Okuma", "semester": 0, "counts": { "2021": 4, "2022": 5, "2023": 4, "2024": 3, "2025": 4, "2026": 4 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-sozcukte-anlam", "name": "Sözcükte Anlam", "semester": 0, "counts": { "2021": 2, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-cumlede-anlam", "name": "Cümlede Anlam", "semester": 0, "counts": { "2021": 2, "2022": 1, "2023": 2, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-deyim-atasozu", "name": "Deyimler ve Atasözleri", "semester": 0, "counts": { "2021": 2, "2022": 0, "2023": 0, "2024": 1, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-soz-sanatlari", "name": "Söz Sanatları", "semester": 0, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-metin-turleri", "name": "Metin Türleri", "semester": 0, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-fiilimsiler", "name": "Fiilimsiler", "semester": 1, "counts": { "2021": 0, "2022": 0, "2023": 1, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-cumlenin-ogeleri", "name": "Cümlenin Ögeleri", "semester": 1, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-fiilde-cati", "name": "Fiilde Çatı", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 0, "2025": 0, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-cumle-turleri", "name": "Cümle Türleri", "semester": 2, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 1, "2025": 1, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-yazim-kurallari", "name": "Yazım Kuralları", "semester": 0, "counts": { "2021": 0, "2022": 1, "2023": 1, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-noktalama", "name": "Noktalama İşaretleri", "semester": 0, "counts": { "2021": 0, "2022": 1, "2023": 1, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-anlatim-bozuklugu", "name": "Anlatım Bozuklukları", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] }
+      ]
+    },
+    {
+      "id": "matematik",
+      "name": "Matematik",
+      "shortName": "MAT",
+      "color": "#2E86DE",
+      "questionCount": 20,
+      "coefficient": 4,
+      "session": "sayisal",
+      "averageCorrect": { "2021": 4.20, "2022": 4.74, "2023": 5.95, "2024": 6.54, "2025": 5.60 },
+      "confidence": "medium",
+      "note": "2021-2022 iki kaynakta aynıdır. 2023-2024'te kaynaklar bazı konularda ayrışır; 2025-2026 tek kaynaktan ve tahminidir.",
+      "topics": [
+        { "id": "mat-carpanlar-katlar", "name": "Çarpanlar ve Katlar", "semester": 1, "counts": { "2021": 3, "2022": 1, "2023": 4, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2023, 2024, 2025, 2026] },
+        { "id": "mat-uslu-ifadeler", "name": "Üslü İfadeler", "semester": 1, "counts": { "2021": 3, "2022": 2, "2023": 3, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2023, 2025, 2026] },
+        { "id": "mat-karekoklu-ifadeler", "name": "Kareköklü İfadeler", "semester": 1, "counts": { "2021": 2, "2022": 3, "2023": 5, "2024": 3, "2025": 3, "2026": 3 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-veri-analizi", "name": "Veri Analizi", "semester": 1, "counts": { "2021": 2, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-olasilik", "name": "Basit Olayların Olma Olasılığı", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-cebirsel-ifadeler", "name": "Cebirsel İfadeler ve Özdeşlikler", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-dogrusal-denklemler", "name": "Doğrusal Denklemler", "semester": 2, "counts": { "2021": 2, "2022": 4, "2023": 0, "2024": 3, "2025": 3, "2026": 3 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-esitsizlikler", "name": "Eşitsizlikler", "semester": 2, "counts": { "2021": 2, "2022": 1, "2023": 0, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-ucgenler", "name": "Üçgenler", "semester": 2, "counts": { "2021": 2, "2022": 2, "2023": 0, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-eslik-benzerlik", "name": "Eşlik ve Benzerlik", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-donusum-geometrisi", "name": "Dönüşüm Geometrisi", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-geometrik-cisimler", "name": "Geometrik Cisimler", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] }
+      ]
+    },
+    {
+      "id": "fen",
+      "name": "Fen Bilimleri",
+      "shortName": "FEN",
+      "color": "#10AC84",
+      "questionCount": 20,
+      "coefficient": 4,
+      "session": "sayisal",
+      "averageCorrect": { "2021": 8.04, "2022": 9.50, "2023": 9.01, "2024": 8.63, "2025": 8.80 },
+      "confidence": "high",
+      "note": "2021, 2023, 2024, 2025 en az iki kaynakta aynıdır. 2022'de DNA/Enerji için kaynaklar ±1 ayrışır. 2026 tek kaynaktan.",
+      "topics": [
+        { "id": "fen-mevsimler-iklim", "name": "Mevsimler ve İklim", "semester": 1, "counts": { "2021": 2, "2022": 1, "2023": 3, "2024": 2, "2025": 1, "2026": 1 }, "estimatedYears": [2026] },
+        { "id": "fen-dna-genetik-kod", "name": "DNA ve Genetik Kod", "semester": 1, "counts": { "2021": 5, "2022": 4, "2023": 8, "2024": 4, "2025": 3, "2026": 3 }, "estimatedYears": [2022, 2026] },
+        { "id": "fen-basinc", "name": "Basınç", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 5, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2026] },
+        { "id": "fen-madde-endustri", "name": "Madde ve Endüstri", "semester": 1, "counts": { "2021": 5, "2022": 5, "2023": 4, "2024": 5, "2025": 5, "2026": 5 }, "estimatedYears": [2026] },
+        { "id": "fen-basit-makineler", "name": "Basit Makineler", "semester": 2, "counts": { "2021": 2, "2022": 2, "2023": 0, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2026] },
+        { "id": "fen-enerji-cevre", "name": "Enerji Dönüşümleri ve Çevre Bilimi", "semester": 2, "counts": { "2021": 4, "2022": 4, "2023": 0, "2024": 3, "2025": 4, "2026": 4 }, "estimatedYears": [2022, 2026] },
+        { "id": "fen-elektrik", "name": "Elektrik Yükleri ve Elektrik Enerjisi", "semester": 2, "counts": { "2021": 0, "2022": 2, "2023": 0, "2024": 2, "2025": 3, "2026": 3 }, "estimatedYears": [2026] }
+      ]
+    },
+    {
+      "id": "inkilap",
+      "name": "T.C. İnkılap Tarihi ve Atatürkçülük",
+      "shortName": "İNK",
+      "color": "#8E44AD",
+      "questionCount": 10,
+      "coefficient": 1,
+      "session": "sozel",
+      "averageCorrect": { "2021": 5.23, "2022": 5.54, "2023": 6.06, "2024": 4.68, "2025": 4.90 },
+      "confidence": "medium",
+      "note": "2021-2022 iki kaynakta aynıdır. 2023 ve 2024'te kaynaklar ayrışır; 2025-2026 tek kaynaktan.",
+      "topics": [
+        { "id": "ink-bir-kahraman-doguyor", "name": "1. Ünite: Bir Kahraman Doğuyor", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 3, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2023, 2025, 2026] },
+        { "id": "ink-milli-uyanis", "name": "2. Ünite: Millî Uyanış: Bağımsızlık Yolunda Atılan Adımlar", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 4 }, "estimatedYears": [2023, 2025, 2026] },
+        { "id": "ink-ya-istiklal-ya-olum", "name": "3. Ünite: Millî Bir Destan: Ya İstiklal Ya Ölüm!", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 3, "2024": 2, "2025": 2, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "ink-ataturkculuk", "name": "4. Ünite: Atatürkçülük ve Çağdaşlaşan Türkiye", "semester": 2, "counts": { "2021": 3, "2022": 3, "2023": 0, "2024": 3, "2025": 3, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "ink-demokratiklesme", "name": "5. Ünite: Demokratikleşme Çabaları", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "ink-dis-politika", "name": "6. Ünite: Atatürk Dönemi Türk Dış Politikası", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "ink-olum-sonrasi", "name": "7. Ünite: Atatürk'ün Ölümü ve Sonrası", "semester": 2, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] }
+      ]
+    },
+    {
+      "id": "din",
+      "name": "Din Kültürü ve Ahlak Bilgisi",
+      "shortName": "DİN",
+      "color": "#D4A017",
+      "questionCount": 10,
+      "coefficient": 1,
+      "session": "sozel",
+      "averageCorrect": { "2021": 6.35, "2022": 6.45, "2023": 6.29, "2024": 5.74, "2025": 5.90 },
+      "confidence": "medium",
+      "note": "2022-2023 iki kaynakta aynıdır. 2021 ve 2024'te kaynaklar ayrışır; 2026 sınıflandırması bulunamadı (tahmin).",
+      "topics": [
+        { "id": "din-kader", "name": "1. Ünite: Kader İnancı", "semester": 1, "counts": { "2021": 3, "2022": 3, "2023": 4, "2024": 3, "2025": 3, "2026": 3 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-zekat-sadaka", "name": "2. Ünite: Zekât ve Sadaka", "semester": 1, "counts": { "2021": 3, "2022": 2, "2023": 3, "2024": 3, "2025": 2, "2026": 2 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-din-ve-hayat", "name": "3. Ünite: Din ve Hayat", "semester": 1, "counts": { "2021": 3, "2022": 4, "2023": 3, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-hz-muhammed", "name": "4. Ünite: Hz. Muhammed'in Örnekliği", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 2, "2026": 2 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-kuran", "name": "5. Ünite: Kur'an-ı Kerim ve Özellikleri", "semester": 2, "counts": { "2021": 1, "2022": 0, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2021, 2024, 2026] }
+      ]
+    },
+    {
+      "id": "ingilizce",
+      "name": "Yabancı Dil (İngilizce)",
+      "shortName": "İNG",
+      "color": "#E84393",
+      "questionCount": 10,
+      "coefficient": 1,
+      "session": "sozel",
+      "averageCorrect": { "2021": 4.93, "2022": 4.59, "2023": 4.91, "2024": 5.15, "2025": 4.40 },
+      "confidence": "low",
+      "note": "Genelde her üniteden ~1 soru gelir. 2021-2024 tek kaynaktan; 2025-2026 büyük ölçüde tahmini.",
+      "topics": [
+        { "id": "en-friendship", "name": "Unit 1: Friendship", "semester": 1, "counts": { "2021": 1, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 1 }, "estimatedYears": [2026] },
+        { "id": "en-teen-life", "name": "Unit 2: Teen Life", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2026] },
+        { "id": "en-in-the-kitchen", "name": "Unit 3: In the Kitchen", "semester": 1, "counts": { "2021": 2, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-on-the-phone", "name": "Unit 4: On the Phone", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-the-internet", "name": "Unit 5: The Internet", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-adventures", "name": "Unit 6: Adventures", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-tourism", "name": "Unit 7: Tourism", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-chores", "name": "Unit 8: Chores", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-science", "name": "Unit 9: Science", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 0, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-natural-forces", "name": "Unit 10: Natural Forces", "semester": 2, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 0, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] }
+      ]
+    }
+  ],
+  "sources": [
+    { "title": "MEB: 2023 LGS'de 8. sınıfın ikinci dönem konuları sınav kapsamına dâhil olmayacak", "url": "https://www.meb.gov.tr/2023-lgsde-8-sinifin-yksde-12-sinifin-ikinci-donem-konulari-sinav-kapsamina-dhil-olmayacak/haber/29003/tr", "usedFor": "2023 kapsamı" },
+    { "title": "MEB: YKS ve LGS'de yeni müfredata uyumlu soru modeli 2028'de hayata geçecek", "url": "https://www.meb.gov.tr/yks-ve-lgsde-yeni-mufredata-uyumlu-soru-modeli-2028de-hayata-gececek/haber/39265/tr", "usedFor": "Maarif Modeli / soru modeli" },
+    { "title": "MEB TYMM Taslak Çerçeve Planları — Temel Eğitim", "url": "https://tymm.meb.gov.tr/taslak-cerceve-planlari/temel-egitim", "usedFor": "2026-2027 Maarif Modeli sınıf kapsamı" },
+    { "title": "egitim.net.tr: 2027 LGS tarihi belli oldu", "url": "https://www.egitim.net.tr/sinav/2027-lgs-sinav-tarihi-belli-oldu-merkezi-sinav-ne-zaman-18228h", "usedFor": "LGS 2027 tarihi (13 Haziran 2027)" },
+    { "title": "timeturk: 2027 LGS tarihi belli oldu, 13 Haziran'da yapılacak", "url": "https://www.timeturk.com/2027-lgs-tarihi-belli-oldu-13-haziranda-yapilacak", "usedFor": "LGS 2027 tarihi" },
+    { "title": "Derslig: LGS Soru Dağılımı — Derslere ve Konulara Göre", "url": "https://www.derslig.com/blog/lgs-soru-dagilimi-derslere-ve-konulara-gore-guncel-rehber", "usedFor": "Matematik, Fen, İnkılap 2020-2026; Din 2020-2025" },
+    { "title": "Bilim Şenliği: LGS konu soru dağılımları son 5 yıl", "url": "https://www.bilimsenligi.com/lgs-konu-soru-dagilimlari-son-5-yil.html", "usedFor": "Tüm dersler 2020-2024 (Türkçe, İngilizce ana kaynak)" },
+    { "title": "Sadece Fen: 2025 LGS Fen Bilimleri soru konu dağılımı", "url": "https://www.sadecefen.com/2025-lgs-fen-bilimleri-soru-konu-dagilimi/", "usedFor": "Fen 2025 doğrulama" },
+    { "title": "Kazanabilirsin: LGS Fen Bilimleri konuları ve soru dağılımı", "url": "https://kazanabilirsin.com/lgs-fen-bilimleri-konulari-ve-soru-dagilimi-pdf", "usedFor": "Fen 2019-2022 çapraz kontrol" },
+    { "title": "Rehber Panda: Son 5 yıl LGS matematik soru analizi", "url": "https://rehberpanda.com/blog/2026-lgs-son-5-yil-soru-analizi-konu-dagilimi/", "usedFor": "Matematik çapraz kontrol (çelişkili)" },
+    { "title": "Bilgenç: LGS konuları ve ders bazında ortalama doğru sayıları", "url": "https://bilgenc.com/lgs-konulari/", "usedFor": "averageCorrect 2021-2025, oturum yapısı" },
+    { "title": "Yeni Şafak: LGS'de 452 şampiyon var (2026 sonuçları)", "url": "https://www.yenisafak.com/gundem/452-sampiyon-var-4839403", "usedFor": "2026 LGS gerçekleşme (13 Haziran 2026)" }
+  ]
+}

@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LGS Yolculuğum</title>
+<meta name="description" content="LGS çalışma takip uygulaması: haftalık program, kitaplar ve LGS konu analizi.">
+<meta name="theme-color" content="#2f6fed" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14181f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LGS Takip">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f3f5f9;--surface:#ffffff;--surface2:#eef1f6;--text:#1c2330;--muted:#7b8494;--muted-fill:#d9dee7;
+  --border:#dde2ea;--accent:#2f6fed;--accent-text:#ffffff;--danger:#d64545;--warn:#e8872b;--warn-bg:#fff3e4;
+  --ok:#2e9e5b;--ok-bg:#e5f6ec;--shadow:0 2px 10px rgba(30,40,70,.08);
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151b;--surface:#1b2029;--surface2:#242a36;--text:#e8ecf3;--muted:#8d97a8;--muted-fill:#363d4b;
+    --border:#2c3341;--accent:#6b9bff;--accent-text:#0d1320;--danger:#ff7a7a;--warn:#f0a050;--warn-bg:#3a2b19;
+    --ok:#5cd08a;--ok-bg:#16301f;--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12151b;--surface:#1b2029;--surface2:#242a36;--text:#e8ecf3;--muted:#8d97a8;--muted-fill:#363d4b;
+  --border:#2c3341;--accent:#6b9bff;--accent-text:#0d1320;--danger:#ff7a7a;--warn:#f0a050;--warn-bg:#3a2b19;
+  --ok:#5cd08a;--ok-bg:#16301f;--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;overflow-x:hidden;min-width:0}
+h1,h2,h3{margin:0;line-height:1.25}
+h2{font-size:20px;margin-bottom:12px}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:0 calc(16px + var(--sar)) 24px calc(16px + var(--sal))}
+header.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border);padding-top:var(--sat)}
+header.top .row{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:8px calc(16px + var(--sar)) 8px calc(16px + var(--sal));min-height:56px}
+.brand{flex:1;min-width:0}
+.brand b{display:block;font-size:18px}
+.brand small{color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge-count{background:var(--accent);color:var(--accent-text);border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;white-space:nowrap}
+.icon-btn{min-width:48px;min-height:48px;border:0;background:transparent;border-radius:14px;cursor:pointer;font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:var(--surface2)}
+main#view{padding-top:14px}
+.banner{background:var(--warn-bg);color:var(--text);border:1px solid var(--warn);border-radius:12px;padding:10px 14px;margin-top:12px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media (min-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.span2{grid-column:span 2}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:18px;min-width:0}
+.card.accent{border-left:6px solid var(--accent)}
+.muted{color:var(--muted)}.small{font-size:14px}.tiny{font-size:12px}
+.big{font-size:44px;font-weight:700;line-height:1.1}
+.row{display:flex;align-items:center;gap:10px}.wrapflex{flex-wrap:wrap}.between{justify-content:space-between}.grow{flex:1;min-width:0}
+.stack{display:flex;flex-direction:column;gap:10px}
+.btn{min-height:48px;padding:0 18px;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn.sm{min-height:44px;padding:0 14px;font-size:16px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.ai-busy .ai-btn{pointer-events:none;opacity:.5}
+.chip{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:var(--surface2);color:var(--text);white-space:nowrap}
+.badge.done{background:var(--ok-bg);color:var(--ok)}.badge.prog{background:var(--warn-bg);color:var(--warn)}
+.badge.none{background:var(--surface2);color:var(--muted)}.badge.pri{background:var(--warn);color:#fff}
+.badge.btnlike{cursor:pointer;min-height:32px;line-height:28px;border:1px solid var(--border)}
+.bar{height:10px;background:var(--muted-fill);border-radius:999px;overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:999px;transition:width .25s;background:var(--accent)}
+.bar.complete>i{background:var(--ok)}
+.bar.mini{height:6px}
+.stripe{height:6px;border-radius:6px;margin-bottom:12px}
+.chart-host{position:relative;width:100%;min-width:0}
+.chart-host canvas{max-width:100%}
+.pie-wrap{position:relative;width:170px;height:170px;margin:0 auto;flex:none}
+.pie-wrap canvas{position:absolute;inset:0}
+.pie-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;pointer-events:none;text-align:center}
+.conic{position:absolute;inset:0;border-radius:50%}
+.conic::after{content:"";position:absolute;inset:22%;background:var(--surface);border-radius:50%}
+.pie-wrap.sm{width:110px;height:110px}.pie-wrap.sm .pie-center{font-size:16px}
+.fb-bar{display:grid;grid-template-columns:minmax(80px,32%) 1fr 44px;gap:8px;align-items:center;margin:4px 0;font-size:13px}
+.fb-bar .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-bar .tr{height:12px;background:var(--muted-fill);border-radius:6px;overflow:hidden}.fb-bar .tr i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;margin-top:8px}.legend span{display:inline-flex;align-items:center;gap:5px}.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);vertical-align:middle}
+th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+th.sortable{cursor:pointer;user-select:none;padding-top:14px;padding-bottom:14px}
+td.num,th.num{text-align:center}
+tr.prio td{background:var(--warn-bg)}tr.prio td:first-child{border-left:4px solid var(--warn)}
+td.est{font-style:italic;color:var(--muted)}
+.star{color:var(--ok);font-weight:700}
+.item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+.item .t{flex:1;min-width:140px}
+.item input[type=checkbox]{width:24px;height:24px;flex:none;accent-color:var(--ok)}
+.counter{display:flex;align-items:center;gap:6px}
+.counter .btn{min-width:44px;padding:0}
+.counter .cnt{min-width:70px;text-align:center;cursor:pointer;padding:8px 4px;border-radius:8px}
+.counter input{width:70px;min-height:40px;text-align:center}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],input[type=url],select,textarea{width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text)}
+textarea{min-height:100px;resize:vertical}
+input[type=color]{width:60px;min-height:44px;padding:2px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:15px;color:var(--muted);min-width:0}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.rowedit{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;align-items:center}
+.rowedit>*{min-width:0}.rowedit .w-title{flex:1 1 180px}.rowedit .w-s{flex:0 0 84px}.rowedit .w-m{flex:1 1 140px}
+.err{color:var(--danger)}.errrow{background:rgba(214,69,69,.12);border-radius:8px;padding:4px 8px;color:var(--danger)}
+.preview-banner{border:2px dashed var(--accent);background:var(--surface);border-radius:14px;padding:14px;margin-bottom:12px}
+/* modal */
+dialog.modal{border:0;border-radius:18px;padding:0;width:min(720px,calc(100vw - 20px));max-height:92vh;max-height:92dvh;background:var(--surface);color:var(--text);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+dialog.modal.wide{width:min(960px,calc(100vw - 20px))}
+dialog.modal::backdrop{background:rgba(0,0,0,.5)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 18px;border-bottom:1px solid var(--border)}
+.modal-body{padding:16px;overflow:auto;max-height:calc(92vh - 140px);max-height:calc(92dvh - 140px)}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:10px 16px calc(10px + var(--sab));border-top:1px solid var(--border)}
+.menu{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:6px;min-width:180px}
+.menu-item{display:block;width:100%;min-height:48px;font-size:17px;text-align:left;padding:0 12px;border:0;background:transparent;border-radius:8px;cursor:pointer}
+.menu-item:hover{background:var(--surface2)}.menu-item.danger{color:var(--danger)}
+#toasts{position:fixed;left:0;right:0;bottom:calc(16px + var(--sab));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:100;pointer-events:none;padding:0 12px}
+.toast{pointer-events:auto;background:#222a38;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.3);max-width:min(520px,100%);display:flex;gap:12px;align-items:center}
+.toast.error{background:#b83a3a}.toast.success{background:#23814a}
+.toast button{background:transparent;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:8px;min-height:36px;padding:0 10px;cursor:pointer}
+#aibar{position:fixed;left:50%;transform:translateX(-50%);top:calc(70px + var(--sat));z-index:90;background:var(--surface);border:1px solid var(--accent);border-radius:999px;padding:8px 8px 8px 16px;display:none;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.ai-busy #aibar{display:flex}
+pre.raw{white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;background:var(--surface2);padding:10px;border-radius:8px;font-size:12px}
+@media (max-width:699px){.big{font-size:38px}}
+/* v2: sade, çocuk dostu arayüz */
+h1{font-size:24px}
+.hidden{display:none!important}
+.page{max-width:820px;margin:0 auto;min-width:0}
+.page.wide{max-width:1200px}
+.ptitle{font-size:26px;margin:4px 0 14px}
+.hero{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+.hero .sub{margin:12px 0 8px;font-weight:600}
+.hero h1{overflow-wrap:anywhere}
+.weeknav{display:flex;align-items:center;gap:8px;margin:12px 0 6px}
+.weeknav .arrow{flex:none;width:56px;min-height:56px;border-radius:16px;border:1px solid var(--border);background:var(--surface);font-size:28px;cursor:pointer;line-height:1}
+.weeknav .wk{flex:1;min-width:0;min-height:56px;border-radius:16px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px}
+.daystrip{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 10px;position:relative;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.dpill{flex:0 0 68px;min-height:84px;border-radius:18px;border:2px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0}
+@media (min-width:600px){.dpill{flex:1 1 0;min-width:0}}
+.dpill .dn{font-size:14px;color:var(--muted)}.dpill .dd{font-size:24px;font-weight:700;line-height:1.1}.dpill .dc{font-size:13px;color:var(--muted)}
+.dpill.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.dpill.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.dpill.sel .dn,.dpill.sel .dc{color:inherit;opacity:.9}
+.dpill.full .dc{color:var(--ok);font-weight:700}.dpill.sel.full .dc{color:inherit}
+.weekmenu{margin:4px 0 10px}
+.daypage{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
+.daytitle{font-size:24px;margin:0 0 6px}
+.daynote{margin-bottom:12px}
+.notebtn{width:100%;min-height:48px;text-align:left;padding:0 14px;border:2px dashed var(--border);border-radius:14px;background:transparent;cursor:pointer;font-size:17px;overflow-wrap:anywhere}
+.notebtn.blank{color:var(--muted)}
+.daynote input{font-size:17px}
+.task{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-left:8px solid var(--sc,var(--muted));border-radius:16px;padding:12px;margin-bottom:10px;cursor:pointer;min-width:0;box-shadow:var(--shadow)}
+.task.isdone{background:var(--ok-bg);border-color:var(--ok);border-left-color:var(--ok)}
+.task.isdone .ttitle{text-decoration:line-through;opacity:.75}
+.temoji{font-size:26px;flex:none;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface2)}
+.tinfo{flex:1;min-width:0}
+.ttitle{font-size:18px;font-weight:700;overflow-wrap:anywhere;line-height:1.3}
+.tsub{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.check{flex:none;width:48px;height:48px;border-radius:50%;border:3px solid var(--muted);background:var(--surface);color:#fff;font-size:26px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.check.on{background:var(--ok);border-color:var(--ok)}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}
+.task.pop{animation:pop .45s ease}
+@media (prefers-reduced-motion:reduce){.task.pop{animation:none}}
+.empty{text-align:center;padding:18px 8px;color:var(--muted)}
+.empty p{font-size:18px;margin:6px 0}
+.bigemoji{font-size:44px}
+.btn.addtask{width:100%;min-height:56px;font-size:18px;margin-top:8px}
+.btn.lg{min-height:52px;font-size:18px;padding:0 24px}
+.btn.big,.chip.big{min-height:48px;font-size:16px}
+.flabel{font-weight:700;margin:14px 0 6px;font-size:16px}
+.linkbtn{display:block;min-height:44px;margin-top:6px;border:0;background:transparent;color:var(--accent);font-size:16px;text-decoration:underline;cursor:pointer;text-align:left;padding:0}
+.chipstrip{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;position:relative;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.chipstrip.wrap{flex-wrap:wrap;overflow-x:visible}
+.schip{flex:0 0 auto;min-height:48px;padding:0 16px;border-radius:999px;border:2px solid var(--c,var(--border));background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:16px;font-weight:600;white-space:nowrap;max-width:240px}
+.schip .tx{overflow:hidden;text-overflow:ellipsis}
+.schip.on{background:var(--c,var(--accent));color:var(--ink,#fff);border-color:var(--c,var(--accent))}
+.schip.on:not([style]){color:var(--accent-text)}
+.sheetbody{display:block;min-width:0}
+.sheetbody .row{flex-wrap:wrap}
+.summary{display:flex;align-items:center;gap:18px;margin:12px 0;flex-wrap:wrap}
+.summary .pie-wrap{margin:0}
+.pie-center{font-size:26px}
+.sumtitle{font-size:20px;font-weight:700;margin-bottom:4px}
+.grouphead{font-size:20px;margin:18px 0 8px}
+.bookcard{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-left:8px solid var(--sc,var(--muted));border-radius:16px;padding:12px;margin-bottom:10px;cursor:pointer;min-width:0;box-shadow:var(--shadow)}
+.bookcard.arch{opacity:.6}
+.bbar{display:flex;align-items:center;gap:10px;margin-top:6px}
+.bbar .pct{min-width:48px;text-align:right}
+.irow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border)}
+.irow .ititle{flex:1 1 140px;min-width:0;font-size:17px;overflow-wrap:anywhere}
+.irow .ititle.dn{text-decoration:line-through;opacity:.7}
+.counter .btn.step{min-width:52px;min-height:52px;font-size:26px;padding:0;border-radius:16px}
+.counter .cnt{min-width:96px;font-size:17px;font-weight:600;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.counter input{width:96px}
+.rowedit .w-full{flex:1 1 100%}
+.det{border:1px solid var(--border);border-radius:14px;padding:4px 14px}
+.det summary,.card summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.subjrow{padding:6px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+.print-only{display:none}
+.printlist{list-style:none;padding:0;margin:0 0 8px}
+/* alt bar */
+header.top .row{min-height:60px}
+.brand b{font-size:20px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border-top:1px solid var(--border);padding:6px calc(10px + var(--sar)) calc(6px + var(--sab)) calc(10px + var(--sal))}
+.tab{min-height:56px;border:0;background:transparent;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-weight:600;padding:0}
+.tab .ic{font-size:24px;line-height:1}.tab .lb{font-size:13px}
+.tab.active{background:var(--accent);color:var(--accent-text)}
+body{padding-bottom:calc(80px + var(--sab))}
+#toasts{bottom:calc(84px + var(--sab))}
+.icon-btn.active{background:var(--surface2)}
+dialog.modal.sheet{width:min(580px,calc(100vw - 20px))}
+@media (max-width:699px){
+  dialog.modal.sheet{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:22px 22px 0 0;max-height:94vh;max-height:94dvh}
+  dialog.modal.sheet .modal-body{max-height:calc(94vh - 130px);max-height:calc(94dvh - 130px)}
+}
+@media (min-width:900px){
+  nav.tabs{position:static;display:flex;gap:8px;border:0;padding:0;background:transparent}
+  .tab{flex-direction:row;min-height:48px;padding:0 20px;gap:8px}
+  .tab .ic{font-size:20px}.tab .lb{font-size:16px}
+  body{padding-bottom:0}
+  #toasts{bottom:calc(16px + var(--sab))}
+}
+
+label.row{min-height:48px}
+
+input[type=file]{padding:10px 12px;min-height:48px;width:100%;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+
+.badge.btnlike{min-height:44px;display:inline-flex;align-items:center;padding:0 14px;font-size:15px;line-height:1.2}
+.rowedit input.w-n{flex:0 0 104px}
+.modal-head h3{min-width:0;overflow-wrap:anywhere}
+
+@media print{
+  header.top,nav.tabs,.no-print,#toasts,#aibar,.btn{display:none!important}
+  .print-only{display:block!important}
+  body{background:#fff;color:#000;padding:0;font-size:12pt}
+  .page{max-width:none}
+  .card{box-shadow:none;break-inside:avoid}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="row">
+    <div class="brand"><b>LGS Yolculuğum</b></div>
+    <nav class="tabs" id="tabs" aria-label="Bölümler"></nav>
+    <button class="icon-btn" id="btn-settings" type="button" aria-label="Ayarlar" title="Ayarlar">&#9881;</button>
+  </div>
+</header>
+<div class="wrap">
+  <div id="storage-warn"></div>
+  <main id="view"></main>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<div id="aibar"><span>Yapay zekâ düşünüyor…</span><button class="btn sm" id="ai-cancel" type="button">İptal</button></div>
+<script id="lgs-data-embedded" type="application/json">{
+  "schemaVersion": 1,
+  "lastUpdated": "2026-11-18",
+  "dataSource": "embedded",
+  "disclaimer": "MEB/ÖDSGM konu bazlı soru dağılımı yayımlamaz. Konu sayıları, yayımlanan soru kitapçıklarını sınıflandıran üçüncü taraf eğitim sitelerinden derlenmiştir. Kaynaklar arasında çelişki olan veya kaynak bulunamayan yıllar 'estimatedYears' içinde işaretlidir.",
+  "exam": {
+    "nextExam": {
+      "name": "LGS 2027",
+      "date": "2027-06-13",
+      "dayOfWeek": "Pazar",
+      "format": "basılı (kâğıt)",
+      "status": "announced",
+      "note": "MEB ÖDSGM 2027 Yılı Sınav Uygulama Takvimi'nde (30 Ekim 2026 duyurusu) yer alır. Başvuru tarihleri ve kılavuz henüz yayımlanmadı (Kasım 2026)."
+    },
+    "sessions": [
+      { "id": "sozel", "name": "Sözel Bölüm (1. oturum)", "questionCount": 50, "durationMin": 75, "subjects": ["turkce", "inkilap", "din", "ingilizce"] },
+      { "id": "sayisal", "name": "Sayısal Bölüm (2. oturum)", "questionCount": 40, "durationMin": 80, "subjects": ["matematik", "fen"] }
+    ],
+    "scoring": {
+      "totalQuestions": 90,
+      "wrongPenalty": "3 yanlış 1 doğruyu götürür (net = doğru − yanlış/3)",
+      "coefficients": { "turkce": 4, "matematik": 4, "fen": 4, "inkilap": 1, "din": 1, "ingilizce": 1 },
+      "maxScore": 500
+    },
+    "pastExams": [
+      { "year": 2021, "scope": "full", "note": "" },
+      { "year": 2022, "scope": "full", "note": "" },
+      { "year": 2023, "scope": "firstSemesterOnly", "date": "2023-06-04", "note": "Deprem nedeniyle yalnızca 8. sınıf 1. dönem konuları sınav kapsamındaydı (MEB, 10 Şubat 2023)." },
+      { "year": 2024, "scope": "full", "note": "" },
+      { "year": 2025, "scope": "full", "note": "Son yılların en zor LGS'si olarak değerlendirildi." },
+      { "year": 2026, "scope": "full", "date": "2026-06-13", "note": "Konu dağılımı verisi sınırlı; çoğu değer tahmini." }
+    ]
+  },
+  "curriculumNote": "2026-2027 eğitim yılında Türkiye Yüzyılı Maarif Modeli 1-2-3, 5-6-7, 9-10-11. sınıflarda uygulanır; 8. sınıf hâlâ önceki (2018 tabanlı) öğretim programıyla okutulmaktadır. 2027 LGS bu 8. sınıf programına göre hazırlanır. Maarif Modeli'ne uyumlu yeni LGS soru modeli MEB'e göre 2028'de başlayacaktır.",
+  "years": [2021, 2022, 2023, 2024, 2025, 2026],
+  "analysisYearsDefault": [2022, 2023, 2024, 2025, 2026],
+  "subjects": [
+    {
+      "id": "turkce",
+      "name": "Türkçe",
+      "shortName": "TR",
+      "color": "#E4572E",
+      "questionCount": 20,
+      "coefficient": 4,
+      "session": "sozel",
+      "averageCorrect": { "2021": 9.41, "2022": 9.22, "2023": 9.99, "2024": 9.63, "2025": 8.40 },
+      "confidence": "medium",
+      "note": "Türkçe beceri temelli bir derstir; konular tema/ünite değil soru türü olarak listelenmiştir. 2025-2026 dağılımı tahminidir.",
+      "topics": [
+        { "id": "tr-parcada-anlam", "name": "Paragrafta (Parçada) Anlam", "semester": 0, "counts": { "2021": 10, "2022": 6, "2023": 7, "2024": 7, "2025": 7, "2026": 7 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-sozel-mantik", "name": "Sözel Mantık / Görsel ve Grafik Okuma", "semester": 0, "counts": { "2021": 4, "2022": 5, "2023": 4, "2024": 3, "2025": 4, "2026": 4 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-sozcukte-anlam", "name": "Sözcükte Anlam", "semester": 0, "counts": { "2021": 2, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-cumlede-anlam", "name": "Cümlede Anlam", "semester": 0, "counts": { "2021": 2, "2022": 1, "2023": 2, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-deyim-atasozu", "name": "Deyimler ve Atasözleri", "semester": 0, "counts": { "2021": 2, "2022": 0, "2023": 0, "2024": 1, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-soz-sanatlari", "name": "Söz Sanatları", "semester": 0, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-metin-turleri", "name": "Metin Türleri", "semester": 0, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-fiilimsiler", "name": "Fiilimsiler", "semester": 1, "counts": { "2021": 0, "2022": 0, "2023": 1, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-cumlenin-ogeleri", "name": "Cümlenin Ögeleri", "semester": 1, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-fiilde-cati", "name": "Fiilde Çatı", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 0, "2025": 0, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-cumle-turleri", "name": "Cümle Türleri", "semester": 2, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 1, "2025": 1, "2026": 0 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-yazim-kurallari", "name": "Yazım Kuralları", "semester": 0, "counts": { "2021": 0, "2022": 1, "2023": 1, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-noktalama", "name": "Noktalama İşaretleri", "semester": 0, "counts": { "2021": 0, "2022": 1, "2023": 1, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "tr-anlatim-bozuklugu", "name": "Anlatım Bozuklukları", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] }
+      ]
+    },
+    {
+      "id": "matematik",
+      "name": "Matematik",
+      "shortName": "MAT",
+      "color": "#2E86DE",
+      "questionCount": 20,
+      "coefficient": 4,
+      "session": "sayisal",
+      "averageCorrect": { "2021": 4.20, "2022": 4.74, "2023": 5.95, "2024": 6.54, "2025": 5.60 },
+      "confidence": "medium",
+      "note": "2021-2022 iki kaynakta aynıdır. 2023-2024'te kaynaklar bazı konularda ayrışır; 2025-2026 tek kaynaktan ve tahminidir.",
+      "topics": [
+        { "id": "mat-carpanlar-katlar", "name": "Çarpanlar ve Katlar", "semester": 1, "counts": { "2021": 3, "2022": 1, "2023": 4, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2023, 2024, 2025, 2026] },
+        { "id": "mat-uslu-ifadeler", "name": "Üslü İfadeler", "semester": 1, "counts": { "2021": 3, "2022": 2, "2023": 3, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2023, 2025, 2026] },
+        { "id": "mat-karekoklu-ifadeler", "name": "Kareköklü İfadeler", "semester": 1, "counts": { "2021": 2, "2022": 3, "2023": 5, "2024": 3, "2025": 3, "2026": 3 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-veri-analizi", "name": "Veri Analizi", "semester": 1, "counts": { "2021": 2, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-olasilik", "name": "Basit Olayların Olma Olasılığı", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-cebirsel-ifadeler", "name": "Cebirsel İfadeler ve Özdeşlikler", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-dogrusal-denklemler", "name": "Doğrusal Denklemler", "semester": 2, "counts": { "2021": 2, "2022": 4, "2023": 0, "2024": 3, "2025": 3, "2026": 3 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-esitsizlikler", "name": "Eşitsizlikler", "semester": 2, "counts": { "2021": 2, "2022": 1, "2023": 0, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-ucgenler", "name": "Üçgenler", "semester": 2, "counts": { "2021": 2, "2022": 2, "2023": 0, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-eslik-benzerlik", "name": "Eşlik ve Benzerlik", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "mat-donusum-geometrisi", "name": "Dönüşüm Geometrisi", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "mat-geometrik-cisimler", "name": "Geometrik Cisimler", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] }
+      ]
+    },
+    {
+      "id": "fen",
+      "name": "Fen Bilimleri",
+      "shortName": "FEN",
+      "color": "#10AC84",
+      "questionCount": 20,
+      "coefficient": 4,
+      "session": "sayisal",
+      "averageCorrect": { "2021": 8.04, "2022": 9.50, "2023": 9.01, "2024": 8.63, "2025": 8.80 },
+      "confidence": "high",
+      "note": "2021, 2023, 2024, 2025 en az iki kaynakta aynıdır. 2022'de DNA/Enerji için kaynaklar ±1 ayrışır. 2026 tek kaynaktan.",
+      "topics": [
+        { "id": "fen-mevsimler-iklim", "name": "Mevsimler ve İklim", "semester": 1, "counts": { "2021": 2, "2022": 1, "2023": 3, "2024": 2, "2025": 1, "2026": 1 }, "estimatedYears": [2026] },
+        { "id": "fen-dna-genetik-kod", "name": "DNA ve Genetik Kod", "semester": 1, "counts": { "2021": 5, "2022": 4, "2023": 8, "2024": 4, "2025": 3, "2026": 3 }, "estimatedYears": [2022, 2026] },
+        { "id": "fen-basinc", "name": "Basınç", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 5, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2026] },
+        { "id": "fen-madde-endustri", "name": "Madde ve Endüstri", "semester": 1, "counts": { "2021": 5, "2022": 5, "2023": 4, "2024": 5, "2025": 5, "2026": 5 }, "estimatedYears": [2026] },
+        { "id": "fen-basit-makineler", "name": "Basit Makineler", "semester": 2, "counts": { "2021": 2, "2022": 2, "2023": 0, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2026] },
+        { "id": "fen-enerji-cevre", "name": "Enerji Dönüşümleri ve Çevre Bilimi", "semester": 2, "counts": { "2021": 4, "2022": 4, "2023": 0, "2024": 3, "2025": 4, "2026": 4 }, "estimatedYears": [2022, 2026] },
+        { "id": "fen-elektrik", "name": "Elektrik Yükleri ve Elektrik Enerjisi", "semester": 2, "counts": { "2021": 0, "2022": 2, "2023": 0, "2024": 2, "2025": 3, "2026": 3 }, "estimatedYears": [2026] }
+      ]
+    },
+    {
+      "id": "inkilap",
+      "name": "T.C. İnkılap Tarihi ve Atatürkçülük",
+      "shortName": "İNK",
+      "color": "#8E44AD",
+      "questionCount": 10,
+      "coefficient": 1,
+      "session": "sozel",
+      "averageCorrect": { "2021": 5.23, "2022": 5.54, "2023": 6.06, "2024": 4.68, "2025": 4.90 },
+      "confidence": "medium",
+      "note": "2021-2022 iki kaynakta aynıdır. 2023 ve 2024'te kaynaklar ayrışır; 2025-2026 tek kaynaktan.",
+      "topics": [
+        { "id": "ink-bir-kahraman-doguyor", "name": "1. Ünite: Bir Kahraman Doğuyor", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 3, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2023, 2025, 2026] },
+        { "id": "ink-milli-uyanis", "name": "2. Ünite: Millî Uyanış: Bağımsızlık Yolunda Atılan Adımlar", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 4 }, "estimatedYears": [2023, 2025, 2026] },
+        { "id": "ink-ya-istiklal-ya-olum", "name": "3. Ünite: Millî Bir Destan: Ya İstiklal Ya Ölüm!", "semester": 1, "counts": { "2021": 2, "2022": 2, "2023": 3, "2024": 2, "2025": 2, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "ink-ataturkculuk", "name": "4. Ünite: Atatürkçülük ve Çağdaşlaşan Türkiye", "semester": 2, "counts": { "2021": 3, "2022": 3, "2023": 0, "2024": 3, "2025": 3, "2026": 2 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "ink-demokratiklesme", "name": "5. Ünite: Demokratikleşme Çabaları", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2024, 2025, 2026] },
+        { "id": "ink-dis-politika", "name": "6. Ünite: Atatürk Dönemi Türk Dış Politikası", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "ink-olum-sonrasi", "name": "7. Ünite: Atatürk'ün Ölümü ve Sonrası", "semester": 2, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 0, "2025": 0, "2026": 0 }, "estimatedYears": [2025, 2026] }
+      ]
+    },
+    {
+      "id": "din",
+      "name": "Din Kültürü ve Ahlak Bilgisi",
+      "shortName": "DİN",
+      "color": "#D4A017",
+      "questionCount": 10,
+      "coefficient": 1,
+      "session": "sozel",
+      "averageCorrect": { "2021": 6.35, "2022": 6.45, "2023": 6.29, "2024": 5.74, "2025": 5.90 },
+      "confidence": "medium",
+      "note": "2022-2023 iki kaynakta aynıdır. 2021 ve 2024'te kaynaklar ayrışır; 2026 sınıflandırması bulunamadı (tahmin).",
+      "topics": [
+        { "id": "din-kader", "name": "1. Ünite: Kader İnancı", "semester": 1, "counts": { "2021": 3, "2022": 3, "2023": 4, "2024": 3, "2025": 3, "2026": 3 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-zekat-sadaka", "name": "2. Ünite: Zekât ve Sadaka", "semester": 1, "counts": { "2021": 3, "2022": 2, "2023": 3, "2024": 3, "2025": 2, "2026": 2 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-din-ve-hayat", "name": "3. Ünite: Din ve Hayat", "semester": 1, "counts": { "2021": 3, "2022": 4, "2023": 3, "2024": 2, "2025": 2, "2026": 2 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-hz-muhammed", "name": "4. Ünite: Hz. Muhammed'in Örnekliği", "semester": 2, "counts": { "2021": 0, "2022": 1, "2023": 0, "2024": 1, "2025": 2, "2026": 2 }, "estimatedYears": [2021, 2024, 2026] },
+        { "id": "din-kuran", "name": "5. Ünite: Kur'an-ı Kerim ve Özellikleri", "semester": 2, "counts": { "2021": 1, "2022": 0, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2021, 2024, 2026] }
+      ]
+    },
+    {
+      "id": "ingilizce",
+      "name": "Yabancı Dil (İngilizce)",
+      "shortName": "İNG",
+      "color": "#E84393",
+      "questionCount": 10,
+      "coefficient": 1,
+      "session": "sozel",
+      "averageCorrect": { "2021": 4.93, "2022": 4.59, "2023": 4.91, "2024": 5.15, "2025": 4.40 },
+      "confidence": "low",
+      "note": "Genelde her üniteden ~1 soru gelir. 2021-2024 tek kaynaktan; 2025-2026 büyük ölçüde tahmini.",
+      "topics": [
+        { "id": "en-friendship", "name": "Unit 1: Friendship", "semester": 1, "counts": { "2021": 1, "2022": 2, "2023": 4, "2024": 2, "2025": 2, "2026": 1 }, "estimatedYears": [2026] },
+        { "id": "en-teen-life", "name": "Unit 2: Teen Life", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2026] },
+        { "id": "en-in-the-kitchen", "name": "Unit 3: In the Kitchen", "semester": 1, "counts": { "2021": 2, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-on-the-phone", "name": "Unit 4: On the Phone", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-the-internet", "name": "Unit 5: The Internet", "semester": 1, "counts": { "2021": 1, "2022": 1, "2023": 2, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-adventures", "name": "Unit 6: Adventures", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-tourism", "name": "Unit 7: Tourism", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-chores", "name": "Unit 8: Chores", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-science", "name": "Unit 9: Science", "semester": 2, "counts": { "2021": 1, "2022": 1, "2023": 0, "2024": 1, "2025": 0, "2026": 1 }, "estimatedYears": [2025, 2026] },
+        { "id": "en-natural-forces", "name": "Unit 10: Natural Forces", "semester": 2, "counts": { "2021": 0, "2022": 0, "2023": 0, "2024": 0, "2025": 1, "2026": 1 }, "estimatedYears": [2025, 2026] }
+      ]
+    }
+  ],
+  "sources": [
+    { "title": "MEB: 2023 LGS'de 8. sınıfın ikinci dönem konuları sınav kapsamına dâhil olmayacak", "url": "https://www.meb.gov.tr/2023-lgsde-8-sinifin-yksde-12-sinifin-ikinci-donem-konulari-sinav-kapsamina-dhil-olmayacak/haber/29003/tr", "usedFor": "2023 kapsamı" },
+    { "title": "MEB: YKS ve LGS'de yeni müfredata uyumlu soru modeli 2028'de hayata geçecek", "url": "https://www.meb.gov.tr/yks-ve-lgsde-yeni-mufredata-uyumlu-soru-modeli-2028de-hayata-gececek/haber/39265/tr", "usedFor": "Maarif Modeli / soru modeli" },
+    { "title": "MEB TYMM Taslak Çerçeve Planları — Temel Eğitim", "url": "https://tymm.meb.gov.tr/taslak-cerceve-planlari/temel-egitim", "usedFor": "2026-2027 Maarif Modeli sınıf kapsamı" },
+    { "title": "egitim.net.tr: 2027 LGS tarihi belli oldu", "url": "https://www.egitim.net.tr/sinav/2027-lgs-sinav-tarihi-belli-oldu-merkezi-sinav-ne-zaman-18228h", "usedFor": "LGS 2027 tarihi (13 Haziran 2027)" },
+    { "title": "timeturk: 2027 LGS tarihi belli oldu, 13 Haziran'da yapılacak", "url": "https://www.timeturk.com/2027-lgs-tarihi-belli-oldu-13-haziranda-yapilacak", "usedFor": "LGS 2027 tarihi" },
+    { "title": "Derslig: LGS Soru Dağılımı — Derslere ve Konulara Göre", "url": "https://www.derslig.com/blog/lgs-soru-dagilimi-derslere-ve-konulara-gore-guncel-rehber", "usedFor": "Matematik, Fen, İnkılap 2020-2026; Din 2020-2025" },
+    { "title": "Bilim Şenliği: LGS konu soru dağılımları son 5 yıl", "url": "https://www.bilimsenligi.com/lgs-konu-soru-dagilimlari-son-5-yil.html", "usedFor": "Tüm dersler 2020-2024 (Türkçe, İngilizce ana kaynak)" },
+    { "title": "Sadece Fen: 2025 LGS Fen Bilimleri soru konu dağılımı", "url": "https://www.sadecefen.com/2025-lgs-fen-bilimleri-soru-konu-dagilimi/", "usedFor": "Fen 2025 doğrulama" },
+    { "title": "Kazanabilirsin: LGS Fen Bilimleri konuları ve soru dağılımı", "url": "https://kazanabilirsin.com/lgs-fen-bilimleri-konulari-ve-soru-dagilimi-pdf", "usedFor": "Fen 2019-2022 çapraz kontrol" },
+    { "title": "Rehber Panda: Son 5 yıl LGS matematik soru analizi", "url": "https://rehberpanda.com/blog/2026-lgs-son-5-yil-soru-analizi-konu-dagilimi/", "usedFor": "Matematik çapraz kontrol (çelişkili)" },
+    { "title": "Bilgenç: LGS konuları ve ders bazında ortalama doğru sayıları", "url": "https://bilgenc.com/lgs-konulari/", "usedFor": "averageCorrect 2021-2025, oturum yapısı" },
+    { "title": "Yeni Şafak: LGS'de 452 şampiyon var (2026 sonuçları)", "url": "https://www.yenisafak.com/gundem/452-sampiyon-var-4839403", "usedFor": "2026 LGS gerçekleşme (13 Haziran 2026)" }
+  ]
+}</script>
+<script>
+(() => {
+'use strict';
+/* ============================ 1. utils ============================ */
+const $ = (s, r = document) => r.querySelector(s);
+function append(n, c) {
+  if (c == null || c === false) return;
+  if (Array.isArray(c)) c.forEach(x => append(n, x));
+  else n.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
+}
+function el(tag, attrs, children) {
+  const n = document.createElement(tag);
+  let val;
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k === 'style') n.style.cssText = v;
+    else if (k === 'value') val = v;
+    else if (k === 'checked') n.checked = !!v;
+    else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (v === true) n.setAttribute(k, '');
+    else n.setAttribute(k, String(v));
+  }
+  append(n, children);
+  if (val !== undefined) n.value = val;
+  return n;
+}
+const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => (crypto.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const pad2 = n => String(n).padStart(2, '0');
+const localDateKey = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parseKey = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const todayKey = () => localDateKey(new Date());
+const weekStartKey = date => { const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return localDateKey(d); };
+const addDays = (key, n) => { const d = parseKey(key); d.setDate(d.getDate() + n); return localDateKey(d); };
+const daysBetween = (a, b) => Math.round((parseKey(b) - parseKey(a)) / 864e5);
+const fmtDate = (key, opts = { day: 'numeric', month: 'long', year: 'numeric' }) => key ? new Intl.DateTimeFormat('tr-TR', opts).format(parseKey(key)) : '';
+const fmtLong = key => fmtDate(key, { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' });
+const fmtMin = m => { m = Math.round(m || 0); const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h} sa ${r} dk` : h ? `${h} sa` : `${r} dk`; };
+const nf1 = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 1 });
+const fmtNum = n => nf1.format(n);
+const fmtPct = f => '%' + nf1.format(f * 100);
+const trLower = s => String(s ?? '').toLocaleLowerCase('tr-TR');
+const normalizeTr = s => trLower(s).replace(/[\s\p{P}\p{S}]+/gu, '');
+const debounce = (fn, ms) => { let t; const f = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; f.flush = () => { clearTimeout(t); fn(); }; return f; };
+function downloadJson(name, obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const readFileAsText = file => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('Dosya okunamadı')); r.readAsText(file); });
+const clone = o => JSON.parse(JSON.stringify(o));
+const safeColor = (c, d = '#888888') => (typeof c === 'string' && /^#[0-9a-f]{3,8}$/i.test(c) ? c : d);
+
+/* ============================ 2. store / lgs data ============================ */
+const KEY = 'lgsTakip.v1';
+let storageOK = true;
+let state = null;
+
+function validateLgsData(obj) {
+  const errors = [], warnings = [];
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return { ok: false, errors: ['Veri bir nesne olmalı.'], warnings, data: null };
+  const d = clone(obj);
+  if (d.schemaVersion !== 1) errors.push('schemaVersion 1 olmalı.');
+  if (!Array.isArray(d.years) || !d.years.length || !d.years.every(y => Number.isFinite(y))) errors.push('years sayı dizisi olmalı.');
+  if (!Array.isArray(d.subjects) || !d.subjects.length) errors.push('subjects boş olmayan bir dizi olmalı.');
+  else d.subjects.forEach((s, i) => {
+    const w = `subjects[${i}]`;
+    if (!s || typeof s !== 'object') { errors.push(`${w} nesne olmalı.`); return; }
+    if (!s.id || typeof s.id !== 'string') errors.push(`${w}.id eksik.`);
+    if (!s.name || typeof s.name !== 'string') errors.push(`${w}.name eksik.`);
+    if (typeof s.questionCount !== 'number') errors.push(`${w}.questionCount sayı olmalı.`);
+    if (!Array.isArray(s.topics)) errors.push(`${w}.topics dizi olmalı.`);
+    else s.topics.forEach((t, j) => {
+      if (!t || typeof t !== 'object' || !t.id || !t.name || !t.counts || typeof t.counts !== 'object') errors.push(`${w}.topics[${j}] için id, name, counts gerekli.`);
+    });
+  });
+  if (errors.length) return { ok: false, errors, warnings, data: null };
+  d.exam = d.exam || {};
+  d.exam.nextExam = Object.assign({ name: 'LGS', date: null, dayOfWeek: '', format: '', status: 'estimated', note: '' }, d.exam.nextExam || {});
+  d.exam.sessions = Array.isArray(d.exam.sessions) ? d.exam.sessions : [];
+  d.exam.scoring = Object.assign({ totalQuestions: 90, wrongPenalty: '', coefficients: {}, maxScore: 500 }, d.exam.scoring || {});
+  d.exam.pastExams = Array.isArray(d.exam.pastExams) ? d.exam.pastExams : [];
+  d.sources = Array.isArray(d.sources) ? d.sources : [];
+  d.disclaimer = d.disclaimer || ''; d.curriculumNote = d.curriculumNote || ''; d.lastUpdated = d.lastUpdated || ''; d.dataSource = d.dataSource || 'embedded';
+  d.years = [...new Set(d.years)].sort((a, b) => a - b);
+  if (!Array.isArray(d.analysisYearsDefault) || !d.analysisYearsDefault.length) d.analysisYearsDefault = d.years.slice(-5);
+  d.subjects.forEach(s => {
+    s.color = safeColor(s.color);
+    s.coefficient = typeof s.coefficient === 'number' ? s.coefficient : (d.exam.scoring.coefficients[s.id] ?? 1);
+    s.shortName = s.shortName || s.name.slice(0, 3);
+    s.averageCorrect = s.averageCorrect || {};
+    s.topics.forEach(t => {
+      t.semester = [0, 1, 2].includes(t.semester) ? t.semester : 1;
+      t.estimatedYears = Array.isArray(t.estimatedYears) ? t.estimatedYears : [];
+      for (const y of Object.keys(t.counts)) t.counts[y] = Number(t.counts[y]) || 0;
+    });
+    for (const y of d.years) {
+      const vals = s.topics.map(t => t.counts[y]).filter(v => typeof v === 'number');
+      if (vals.length) { const sum = vals.reduce((a, b) => a + b, 0); if (sum !== s.questionCount) warnings.push(`${s.name} ${y}: konu toplamı ${sum}, soru sayısı ${s.questionCount}.`); }
+    }
+  });
+  return { ok: true, errors, warnings, data: d };
+}
+
+const embedded = (() => {
+  try {
+    const v = validateLgsData(JSON.parse(document.getElementById('lgs-data-embedded').textContent));
+    if (v.ok) return v.data;
+    console.error('Gömülü veri geçersiz', v.errors);
+  } catch (e) { console.error(e); }
+  return validateLgsData({ schemaVersion: 1, years: [2026], subjects: [{ id: 'x', name: 'Veri yok', questionCount: 0, topics: [] }] }).data;
+})();
+const getEmbeddedData = () => embedded;
+const activeData = () => state?.lgsDataOverride ?? embedded;
+
+const SUBJ_EMOJI = { turkce: '📖', matematik: '➗', fen: '🔬', inkilap: '🏛️', din: '🕌', ingilizce: '🔤' };
+const SUBJ_SHORT = { turkce: 'Türkçe', matematik: 'Matematik', fen: 'Fen', inkilap: 'İnkılap', din: 'Din', ingilizce: 'İngilizce' };
+const defEmoji = s => s.emoji || SUBJ_EMOJI[s.lgsSubjectId] || '📘';
+const defShort = s => s.shortName || SUBJ_SHORT[s.lgsSubjectId] || String(s.name || '').slice(0, 12);
+function defaultState() {
+  return {
+    version: 1,
+    profile: { studentName: '', examDate: null, dailyMinutes: { 0: 120, 1: 120, 2: 120, 3: 120, 4: 120, 5: 240, 6: 180 }, theme: 'auto' },
+    settings: { apiKey: '', model: 'claude-sonnet-5-5', dataUrl: '', analysisYears: null, useWebSearch: true },
+    subjects: embedded.subjects.map((s, i) => ({ id: s.id, name: s.name, shortName: SUBJ_SHORT[s.id] || s.name.slice(0, 12), emoji: SUBJ_EMOJI[s.id] || '📘', color: s.color, lgsSubjectId: s.id, visible: true, order: i })),
+    books: [], topicOverrides: {}, activity: [], plans: {},
+    lgsDataOverride: null, lgsDataMeta: { source: 'embedded', appliedAt: null, previous: null },
+    ui: { lastRoute: '#program', bookSubject: 'all' },
+    meta: { importTimesCleared: true }
+  };
+}
+function migrateState(s) {
+  const base = defaultState();
+  if (!s || typeof s !== 'object') return base;
+  const m = Object.assign({}, s);
+  m.version = 1;
+  m.profile = Object.assign({}, base.profile, s.profile || {});
+  m.profile.dailyMinutes = Object.assign({}, base.profile.dailyMinutes, (s.profile || {}).dailyMinutes || {});
+  m.settings = Object.assign({}, base.settings, s.settings || {});
+  for (const k of ['subjects', 'books', 'activity']) if (!Array.isArray(m[k])) m[k] = base[k];
+  m.subjects = m.subjects.filter(x => x && typeof x === 'object' && x.id);
+  if (!m.subjects.length) m.subjects = base.subjects;
+  m.subjects.forEach((x, i) => { x.name = String(x.name || x.id); x.color = safeColor(x.color, '#7a5af8'); x.visible = x.visible !== false; x.order = Number.isFinite(x.order) ? x.order : i; x.lgsSubjectId = x.lgsSubjectId || null; { const em = String(x.emoji || ''); x.emoji = (!em || [...em].some(c => c.codePointAt(0) >= 0x1F1E6 && c.codePointAt(0) <= 0x1F1FF)) ? defEmoji(Object.assign({}, x, { emoji: '' })) : em; } x.shortName = String(x.shortName || '') || defShort(x); });
+  m.books = m.books.filter(b => b && typeof b === 'object' && b.id);
+  m.books.forEach(b => { b.title = String(b.title || 'Kitap'); b.kind = b.kind || 'karma'; b.createdAt = b.createdAt || new Date().toISOString(); b.items = (Array.isArray(b.items) ? b.items : []).filter(it => it && typeof it === 'object' && it.id).map(it => { it.title = String(it.title || 'Bölüm'); it.total = Math.max(1, Math.round(Number(it.total)) || 1); it.done = clamp(Math.round(Number(it.done)) || 0, 0, it.total); it.unit = ['test', 'sayfa', 'konu'].includes(it.unit) ? it.unit : 'konu'; it.lgsTopicId = it.lgsTopicId || null; return it; }); });
+  m.activity = m.activity.filter(a => a && typeof a.date === 'string');
+  if (!m.plans || typeof m.plans !== 'object' || Array.isArray(m.plans)) m.plans = {};
+  for (const k of Object.keys(m.plans)) {
+    const p = m.plans[k];
+    if (!p || typeof p !== 'object') { delete m.plans[k]; continue; }
+    p.weekStart = p.weekStart || k; p.sessions = (Array.isArray(p.sessions) ? p.sessions : []).filter(x => x && Number.isInteger(x.day) && x.day >= 0 && x.day <= 6).map(x => { x.id = x.id || uid(); x.durationMin = Math.max(1, Number(x.durationMin) || 40); x.start = x.start || ''; x.title = String(x.title || ''); x.subjectId = x.subjectId || ''; x.done = !!x.done; if (x.order != null && !Number.isFinite(x.order)) delete x.order; return x; });
+    p.note = typeof p.note === 'string' ? p.note : '';
+    if (!Array.isArray(p.dayNotes)) { const r = splitWeekNote(p.note); p.dayNotes = r.notes; p.note = r.rest; }
+    p.dayNotes = [0, 1, 2, 3, 4, 5, 6].map(i => String(p.dayNotes[i] ?? '').slice(0, 200));
+  }
+  if (!m.topicOverrides || typeof m.topicOverrides !== 'object') m.topicOverrides = {};
+  m.meta = Object.assign({}, s.meta || {});
+  if (!m.meta.importTimesCleared) {
+    for (const p of Object.values(m.plans)) {
+      if (p.source !== 'import') continue;
+      for (let d = 0; d < 7; d++) {
+        p.sessions.map((x, i) => ({ x, i })).filter(o => o.x.day === d).sort((a, b) => (a.x.start || '99:99').localeCompare(b.x.start || '99:99') || a.i - b.i).forEach((o, k) => { o.x.order = k; o.x.start = ''; });
+      }
+    }
+    m.meta.importTimesCleared = true;
+  }
+  m.lgsDataMeta = Object.assign({}, base.lgsDataMeta, s.lgsDataMeta || {});
+  if (m.lgsDataMeta.previous) { const pv = validateLgsData(m.lgsDataMeta.previous); m.lgsDataMeta.previous = pv.ok ? pv.data : null; }
+  if (m.lgsDataOverride) { const v = validateLgsData(m.lgsDataOverride); m.lgsDataOverride = v.ok ? v.data : null; } else m.lgsDataOverride = null;
+  m.ui = Object.assign({}, base.ui, s.ui || {});
+  if (typeof m.ui.bookSubject !== 'string') m.ui.bookSubject = 'all';
+  m.books.forEach(b => { b.items = Array.isArray(b.items) ? b.items : []; });
+  return m;
+}
+let corruptNote = false;
+function loadState() {
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { storageOK = false; return migrateState(null); }
+  if (raw) {
+    try { return migrateState(JSON.parse(raw)); }
+    catch (e) {
+      console.warn('Durum okunamadı', e); corruptNote = true;
+      try { localStorage.setItem(KEY + '.corrupt', raw); } catch (_) { /* yoksay */ }
+    }
+  }
+  return migrateState(null);
+}
+function writeNow() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch (e) { if (storageOK) { storageOK = false; renderStorageWarn(); } }
+}
+const saveState = debounce(writeNow, 300);
+function exportBackup() {
+  const st = clone(state); st.settings.apiKey = '';
+  return { app: 'lgs-takip', backupVersion: 1, exportedAt: new Date().toISOString(), state: st };
+}
+function importBackup(obj) {
+  if (!obj || obj.app !== 'lgs-takip' || !obj.state || typeof obj.state !== 'object') throw new Error('Bu bir LGS Takip yedeği değil.');
+  const key = state.settings.apiKey;
+  const ns = migrateState(obj.state);
+  ns.settings.apiKey = key;
+  state = ns; writeNow();
+}
+(function probeStorage() { try { localStorage.setItem('lgsTakip.probe', '1'); localStorage.removeItem('lgsTakip.probe'); } catch (e) { storageOK = false; } })();
+
+/* ============================ 3. lgs analysis ============================ */
+const selectedYears = () => {
+  const d = activeData();
+  const ys = (state.settings.analysisYears || d.analysisYearsDefault).filter(y => d.years.includes(y));
+  return ys.length ? ys : d.analysisYearsDefault;
+};
+function topicWeight(topic, years, data = activeData()) {
+  const scope = {}; data.exam.pastExams.forEach(p => scope[p.year] = p.scope);
+  let sum = 0, n = 0;
+  for (const y of years) {
+    if (scope[y] === 'firstSemesterOnly' && topic.semester === 2) continue;
+    const c = topic.counts[y]; if (typeof c !== 'number') continue;
+    sum += c; n++;
+  }
+  return n ? sum / n : 0;
+}
+function isHighWeight(topic, subject, years) {
+  const avg = topicWeight(topic, years);
+  if (subject.questionCount && avg / subject.questionCount >= 0.15) return true;
+  const ranked = subject.topics.map(t => [t, topicWeight(t, years)]).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  return avg >= 1.5 && ranked.some(r => r[0].id === topic.id);
+}
+const lgsSubject = id => activeData().subjects.find(s => s.id === id);
+const subjectState = id => state.subjects.find(s => s.id === id);
+const subjectColor = id => subjectState(id)?.color || 'var(--muted)';
+const subjectName = id => id ? (subjectState(id)?.name || '?') : 'Deneme';
+const subjEmoji = id => id ? (subjectState(id) ? defEmoji(subjectState(id)) : '📘') : '🧪';
+const subjShort = id => id ? (subjectState(id) ? defShort(subjectState(id)) : 'Ders') : 'Deneme';
+function activeLgsSubjects(visibleOnly = true) {
+  return state.subjects.filter(s => s.lgsSubjectId && (!visibleOnly || s.visible)).sort((a, b) => a.order - b.order)
+    .map(st => ({ st, ls: lgsSubject(st.lgsSubjectId) })).filter(x => x.ls);
+}
+
+/* ============================ 4. progress ============================ */
+const itemFraction = it => clamp(it.done / (it.total || 1), 0, 1);
+const itemComplete = it => it.done >= it.total;
+function bookProgress(book) {
+  const n = book.items.length;
+  const sum = book.items.reduce((a, it) => a + itemFraction(it), 0);
+  return { frac: n ? sum / n : 0, sum, doneItems: book.items.filter(itemComplete).length, totalItems: n };
+}
+const subjectBooks = (sid, includeArchived = false) => state.books.filter(b => b.subjectId === sid && (includeArchived || !b.archived));
+function subjectProgress(sid) {
+  const books = subjectBooks(sid);
+  let sum = 0, n = 0, done = 0;
+  books.forEach(b => b.items.forEach(it => { sum += itemFraction(it); n++; if (itemComplete(it)) done++; }));
+  return { frac: n ? sum / n : 0, sum, items: n, doneItems: done, books: books.length };
+}
+function totalProgress() {
+  let sum = 0, n = 0, done = 0, books = 0;
+  state.subjects.forEach(s => { const p = subjectProgress(s.id); sum += p.sum; n += p.items; done += p.doneItems; books += p.books; });
+  return { frac: n ? sum / n : 0, sum, items: n, doneItems: done, books };
+}
+function linkedItems(topicId) {
+  const out = [];
+  state.books.forEach(b => { if (!b.archived) b.items.forEach(it => { if (it.lgsTopicId === topicId) out.push({ book: b, item: it }); }); });
+  return out;
+}
+function topicStatus(topicId) {
+  const ov = state.topicOverrides[topicId];
+  const items = linkedItems(topicId);
+  if (ov) return { status: ov, noMaterial: false, override: true, completion: ov === 'done' ? 1 : ov === 'notStarted' ? 0 : (items.length ? items.reduce((a, x) => a + itemFraction(x.item), 0) / items.length : 0.5) };
+  if (!items.length) return { status: 'notStarted', noMaterial: true, override: false, completion: 0 };
+  const comp = items.reduce((a, x) => a + itemFraction(x.item), 0) / items.length;
+  const status = items.every(x => itemComplete(x.item)) ? 'done' : items.some(x => x.item.done > 0) ? 'inProgress' : 'notStarted';
+  return { status, noMaterial: false, override: false, completion: comp };
+}
+const topicCompletion = id => topicStatus(id).completion;
+const priorityScore = (topic, subject, years) => topicWeight(topic, years) * subject.coefficient * (1 - topicCompletion(topic.id));
+function daysToExam() { const e = examDateStr(); return e ? daysBetween(todayKey(), e) : null; }
+const examDateStr = () => state.profile.examDate || activeData().exam.nextExam.date;
+function weekCompletion(ws) {
+  const p = state.plans[ws]; if (!p || !p.sessions.length) return null;
+  const tot = p.sessions.reduce((a, s) => a + s.durationMin, 0);
+  return tot ? p.sessions.filter(s => s.done).reduce((a, s) => a + s.durationMin, 0) / tot : 0;
+}
+function weekActivity(ws) {
+  const end = addDays(ws, 6);
+  return state.activity.filter(a => a.date >= ws && a.date <= end && a.delta > 0).reduce((s, a) => s + a.delta, 0);
+}
+function recordActivity(bookId, itemId, delta) {
+  state.activity.push({ ts: new Date().toISOString(), date: todayKey(), bookId, itemId, delta });
+  if (state.activity.length > 5000) state.activity.splice(0, state.activity.length - 5000);
+}
+function subjectCoverage(ls, years) {
+  let num = 0, den = 0, done = 0;
+  ls.topics.forEach(t => { const w = topicWeight(t, years); const c = topicCompletion(t.id); num += w * c; den += w; if (topicStatus(t.id).status === 'done') done++; });
+  return { frac: den ? num / den : 0, done, total: ls.topics.length };
+}
+
+/* --- lgs data merge / diff --- */
+function mergeRefresh(current, refresh) {
+  const d = clone(current);
+  const ne = refresh.nextExam || {};
+  if (ne.name) d.exam.nextExam.name = ne.name;
+  if (ne.date && /^\d{4}-\d{2}-\d{2}$/.test(ne.date)) {
+    d.exam.nextExam.date = ne.date;
+    d.exam.nextExam.dayOfWeek = new Intl.DateTimeFormat('tr-TR', { weekday: 'long' }).format(parseKey(ne.date));
+  }
+  if (ne.status === 'announced' || ne.status === 'estimated') d.exam.nextExam.status = ne.status;
+  if (typeof ne.note === 'string') d.exam.nextExam.note = ne.note;
+  const years = new Set([...(d.years || []), ...((refresh.years || []).filter(Number.isFinite))]);
+  for (const rs of refresh.subjects || []) {
+    const s = d.subjects.find(x => x.id === rs.id); if (!s) continue;
+    for (const rt of rs.topics || []) {
+      const t = s.topics.find(x => x.id === rt.id); if (!t) continue;
+      const touched = new Set();
+      for (const c of rt.counts || []) {
+        if (!Number.isFinite(c.year) || !Number.isFinite(c.count)) continue;
+        t.counts[c.year] = c.count; touched.add(c.year); years.add(c.year);
+        if (c.estimated) { if (!t.estimatedYears.includes(c.year)) t.estimatedYears.push(c.year); }
+        else t.estimatedYears = t.estimatedYears.filter(y => y !== c.year);
+      }
+    }
+  }
+  d.years = [...years].sort((a, b) => a - b);
+  d.analysisYearsDefault = d.years.slice(-5);
+  d.years.forEach(y => { if (!d.exam.pastExams.some(p => p.year === y)) d.exam.pastExams.push({ year: y, scope: 'full', note: '' }); });
+  d.exam.pastExams.sort((a, b) => a.year - b.year);
+  const seen = new Set(); const src = [];
+  [...(refresh.sources || []), ...(d.sources || [])].forEach(s => { if (s && s.url && !seen.has(s.url)) { seen.add(s.url); src.push(s); } });
+  d.sources = src;
+  d.lastUpdated = todayKey(); d.dataSource = 'ai';
+  return d;
+}
+function diffLgsData(oldD, newD) {
+  const out = { examDate: null, addedYears: [], changes: [], oldUpdated: oldD.lastUpdated, newUpdated: newD.lastUpdated, newSources: 0 };
+  if (oldD.exam.nextExam.date !== newD.exam.nextExam.date) out.examDate = [oldD.exam.nextExam.date, newD.exam.nextExam.date];
+  out.addedYears = newD.years.filter(y => !oldD.years.includes(y));
+  out.newSources = newD.sources.filter(s => !oldD.sources.some(o => o.url === s.url)).length;
+  newD.subjects.forEach(ns => {
+    const os = oldD.subjects.find(s => s.id === ns.id);
+    ns.topics.forEach(nt => {
+      const ot = os?.topics.find(t => t.id === nt.id);
+      const ys = new Set([...Object.keys(nt.counts), ...Object.keys(ot?.counts || {})]);
+      ys.forEach(y => { const a = ot?.counts[y], b = nt.counts[y]; if (a !== b) out.changes.push({ subject: ns.name, topic: nt.name, year: y, from: a, to: b }); });
+    });
+  });
+  return out;
+}
+
+/* ============================ 5. planner ============================ */
+const DAY_NAMES = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+const DAY_SHORT = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const DAY_MAP = {};
+DAY_SHORT.forEach((s, i) => { DAY_MAP[trLower(s)] = i; DAY_MAP[trLower(DAY_NAMES[i])] = i; });
+DAY_MAP['salı'] = 1;
+const UNIT_LABEL = { test: 'test', sayfa: 'sayfa', konu: 'konu' };
+const HHMM = /^([01]?\d|2[0-3])[:.]([0-5]\d)$/;
+const normTime = s => { const m = HHMM.exec(String(s || '').trim()); return m ? `${pad2(+m[1])}:${m[2]}` : ''; };
+const timeStr = min => `${pad2(Math.floor(min / 60) % 24)}:${pad2(min % 60)}`;
+const blankNotes = () => ['', '', '', '', '', '', ''];
+/* "Salı: Dershane günü · Cuma: ..." biçimli hafta notunu günlere dağıtır; ayrıştırılamayanı rest olarak döndürür */
+function splitWeekNote(note) {
+  const notes = blankNotes(), rest = [];
+  String(note || '').split(/\s*[·•|;\n]\s*/).map(x => x.trim()).filter(Boolean).forEach(part => {
+    const m = /^([^:–—]{2,12}?)\s*[:–—]\s*(.+)$/.exec(part);
+    const day = m ? DAY_MAP[trLower(m[1].trim())] : undefined;
+    if (day === undefined) { rest.push(part); return; }
+    notes[day] = notes[day] ? notes[day] + ' · ' + m[2].trim() : m[2].trim();
+  });
+  return { notes, rest: rest.join(' · ') };
+}
+function mkPlan(ws, source, sessions, note) {
+  const r = splitWeekNote(note);
+  return { weekStart: ws, source, createdAt: new Date().toISOString(), note: r.rest, dayNotes: r.notes, sessions };
+}
+function applyPlan(ws, source, sessions, note) {
+  const old = state.plans[ws]; const p = mkPlan(ws, source, sessions, note);
+  if (old) { p.dayNotes = p.dayNotes.map((n, i) => n || old.dayNotes?.[i] || ''); if (!p.note) p.note = old.note || ''; }
+  state.plans[ws] = p; return p;
+}
+function ensurePlan(ws, source = 'manual') {
+  if (!state.plans[ws]) state.plans[ws] = mkPlan(ws, source, [], '');
+  if (!Array.isArray(state.plans[ws].dayNotes)) state.plans[ws].dayNotes = blankNotes();
+  return state.plans[ws];
+}
+function dayBudgets() { return [0, 1, 2, 3, 4, 5, 6].map(d => Math.max(0, +state.profile.dailyMinutes[d] || 0)); }
+function dayTotals(plan) { const t = [0, 0, 0, 0, 0, 0, 0]; (plan?.sessions || []).forEach(s => { t[s.day] += s.durationMin; }); return t; }
+
+function generateRulePlan(ws) {
+  const years = selectedYears();
+  const budgets = dayBudgets();
+  const exOff = daysBetween(ws, examDateStr() || '2100-01-01');
+  if (exOff < 0) budgets.fill(0); else if (exOff <= 6) for (let d = exOff; d < 7; d++) budgets[d] = 0;
+  const daysLeft = daysToExam() ?? 999;
+  const sessions = [];
+  const offset = [0, 0, 0, 0, 0, 0, 0];
+  if (budgets[6] >= 80) {
+    sessions.push({ id: uid(), day: 6, start: '10:00', durationMin: 80, subjectId: '', lgsTopicId: null, bookId: null, itemId: null, title: 'Deneme / karışık tekrar', done: false });
+    budgets[6] -= 80; offset[6] = 80;
+  }
+  const subs = activeLgsSubjects().map(({ st, ls }) => {
+    const cands = [];
+    ls.topics.forEach(t => {
+      const stt = topicStatus(t.id).status; const sc = priorityScore(t, ls, years);
+      if (stt !== 'done') cands.push({ t, score: sc, review: false });
+      else if (daysLeft < 60 && isHighWeight(t, ls, years)) cands.push({ t, score: topicWeight(t, years) * ls.coefficient * 0.5, review: true });
+    });
+    cands.sort((a, b) => b.score - a.score);
+    return { st, ls, cands, w: ls.coefficient * ls.questionCount };
+  }).filter(s => s.cands.length);
+  const slots = budgets.reduce((a, b) => a + Math.floor(b / 40), 0);
+  const wsum = subs.reduce((a, s) => a + s.w, 0) || 1;
+  const remaining = {}; subs.forEach(s => { remaining[s.st.id] = Math.max(1, Math.round(slots * s.w / wsum)); });
+  const uses = {}, alloc = {}, perDay = budgets.map(() => ({}));
+  const tUsed = [0, 0, 0, 0, 0, 0, 0], cnt = [0, 0, 0, 0, 0, 0, 0];
+  const place = (d, s) => {
+    const avail = s.cands.filter(c => (uses[c.t.id] || 0) < 3);
+    if (!avail.length) return false;
+    const minUse = Math.min(...avail.map(c => uses[c.t.id] || 0));
+    const c = avail.find(x => (uses[x.t.id] || 0) === minUse);
+    uses[c.t.id] = (uses[c.t.id] || 0) + 1;
+    let bookId = null, itemId = null, title = (c.review ? 'Tekrar: ' : '') + c.t.name;
+    const li = linkedItems(c.t.id).find(x => !itemComplete(x.item) && x.item.total - x.item.done - (alloc[x.item.id] || 0) > 0);
+    if (li) {
+      const rem = li.item.total - li.item.done - (alloc[li.item.id] || 0);
+      const n = li.item.unit === 'konu' ? 0 : Math.min(li.item.unit === 'sayfa' ? 20 : 2, rem);
+      alloc[li.item.id] = (alloc[li.item.id] || 0) + (n || 1);
+      bookId = li.book.id; itemId = li.item.id;
+      title += ` — ${li.book.title}` + (n ? ` (${n} ${li.item.unit})` : '');
+    } else title += c.review ? ' — genel tekrar' : ' — konu çalışması';
+    const base = d >= 5 ? 600 : 1020;
+    sessions.push({ id: uid(), day: d, start: timeStr(base + offset[d] + tUsed[d] + 10 * Math.floor(cnt[d] / 2)), durationMin: 40, subjectId: s.st.id, lgsTopicId: c.t.id, bookId, itemId, title, done: false });
+    perDay[d][s.st.id] = (perDay[d][s.st.id] || 0) + 1; remaining[s.st.id]--; tUsed[d] += 40; cnt[d]++;
+    return true;
+  };
+  // 1) her aktif derse en az 1 oturum: haftaya yayarak
+  const validDays = [0, 1, 2, 3, 4, 5, 6].filter(d => budgets[d] >= 40);
+  if (validDays.length) subs.forEach((s, i) => {
+    for (let k = 0; k < validDays.length; k++) {
+      const d = validDays[(i * 2 + k) % validDays.length];
+      if (budgets[d] - tUsed[d] >= 40 && place(d, s)) return;
+    }
+  });
+  // 2) kalan kotayı ağırlığa göre (en büyük açık önce) dağıt
+  for (let d = 0; d < 7; d++) {
+    while (budgets[d] - tUsed[d] >= 40) {
+      const opts = subs.filter(s => remaining[s.st.id] > 0 && (perDay[d][s.st.id] || 0) < 2 && s.cands.some(c => (uses[c.t.id] || 0) < 3));
+      if (!opts.length) break;
+      opts.sort((a, b) => remaining[b.st.id] - remaining[a.st.id] || b.ls.coefficient - a.ls.coefficient);
+      if (!place(d, opts[0])) break;
+    }
+  }
+  return mkPlan(ws, 'rule', sessions, '');
+}
+
+function matchSubject(text) {
+  const q = normalizeTr(text); if (!q) return null;
+  let best = null;
+  for (const s of state.subjects) {
+    const ls = s.lgsSubjectId ? lgsSubject(s.lgsSubjectId) : null;
+    const names = [s.name, s.id, ls?.shortName, ls?.name].filter(Boolean).map(normalizeTr);
+    for (const n of names) {
+      let score = 0;
+      if (n === q) score = 100;
+      else if (q.length >= 3 && n.startsWith(q.slice(0, 3)) && (n.startsWith(q) || q.startsWith(n.slice(0, 3)) && q.length <= 4)) score = 60;
+      else if (q.length >= 3 && n.includes(q)) score = 50;
+      else if (n.length >= 3 && q.startsWith(n.slice(0, 3)) && q.length >= 3) score = 40;
+      if (score > (best?.score || 0)) best = { s, score };
+    }
+  }
+  return best?.s || null;
+}
+function matchTopic(subjectId, text) {
+  const s = subjectState(subjectId); const ls = s?.lgsSubjectId ? lgsSubject(s.lgsSubjectId) : null; if (!ls) return null;
+  const q = normalizeTr(text); let best = null;
+  ls.topics.forEach(t => { const n = normalizeTr(t.name); if (n && q.includes(n) && (!best || n.length > best.n.length)) best = { t, n }; });
+  return best?.t.id || null;
+}
+function parseDuration(tok, next) {
+  const m = /^(\d+(?:[.,]\d+)?)\s*(dk|dak|dakika|sa|saat)?$/i.exec(tok || '');
+  if (!m) return null;
+  let unit = (m[2] || '').toLowerCase(), consumed = 1;
+  if (!unit && next && /^(dk|dak|dakika|sa|saat)$/i.test(next)) { unit = next.toLowerCase(); consumed = 2; }
+  const v = parseFloat(m[1].replace(',', '.'));
+  return { min: Math.round(/^sa/.test(unit) ? v * 60 : v), consumed };
+}
+function parsePlanText(text) {
+  const sessions = [], errors = [];
+  String(text || '').split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim(); if (!line) return;
+    const toks = line.split(/\s+/);
+    const day = DAY_MAP[trLower(toks[0])];
+    if (day === undefined) { errors.push({ line: i + 1, text: line, msg: 'Gün anlaşılamadı' }); return; }
+    let p = 1, start = '';
+    if (toks[p] && HHMM.test(toks[p])) { start = normTime(toks[p]); p++; }
+    const dur = parseDuration(toks[p], toks[p + 1]);
+    let min = 40;
+    if (dur) { min = dur.min; p += dur.consumed; }
+    const rest = toks.slice(p).join(' ');
+    let subjText, desc;
+    const dm = /^(.*?)\s+[-–—:]\s+(.*)$/.exec(rest);
+    if (dm) { subjText = dm[1]; desc = dm[2]; } else { const t2 = rest.split(/\s+/); subjText = t2[0]; desc = t2.slice(1).join(' '); }
+    const subj = matchSubject(subjText);
+    if (!subj) { errors.push({ line: i + 1, text: line, msg: `Ders bulunamadı: "${subjText}"` }); return; }
+    const topicId = matchTopic(subj.id, desc || subjText);
+    sessions.push({ id: uid(), day, start, durationMin: clamp(min, 10, 180), subjectId: subj.id, lgsTopicId: topicId, bookId: null, itemId: null, title: desc || subj.name, done: false });
+  });
+  return { sessions, errors };
+}
+function normalizePlanSessions(raw) {
+  const sessions = [], errors = []; let dropped = 0;
+  (Array.isArray(raw) ? raw : []).forEach((r, i) => {
+    if (!r || typeof r !== 'object') { dropped++; errors.push({ line: i + 1, text: String(r), msg: 'Geçersiz öğe' }); return; }
+    let day = r.day;
+    if (typeof day === 'string' && DAY_MAP[trLower(day)] !== undefined) day = DAY_MAP[trLower(day)];
+    if (day === null || day === undefined || day === '') { dropped++; errors.push({ line: i + 1, text: String(r.title || ''), msg: 'Gün yok' }); return; }
+    day = Number(day);
+    let subj = r.subjectId !== undefined && r.subjectId !== '' ? state.subjects.find(s => s.id === r.subjectId) : null;
+    if (!subj && (r.subject || r.subjectId)) subj = matchSubject(r.subject || r.subjectId);
+    const label = `${r.title || r.subject || r.subjectId || ''}`;
+    if (!Number.isInteger(day) || day < 0 || day > 6) { dropped++; errors.push({ line: i + 1, text: label, msg: 'Gün geçersiz' }); return; }
+    if (!subj && r.subjectId !== '') { dropped++; errors.push({ line: i + 1, text: label, msg: 'Ders bulunamadı' }); return; }
+    const sid = subj ? subj.id : '';
+    const ls = subj?.lgsSubjectId ? lgsSubject(subj.lgsSubjectId) : null;
+    const topicId = r.lgsTopicId && ls?.topics.some(t => t.id === r.lgsTopicId) ? r.lgsTopicId : null;
+    const book = r.bookId ? state.books.find(b => b.id === r.bookId) : null;
+    const item = book && r.itemId ? book.items.find(it => it.id === r.itemId) : null;
+    const dm = Math.round(Number(r.durationMin ?? r.duration) || 40);
+    sessions.push({ id: uid(), day, start: normTime(r.start), durationMin: clamp(dm, 10, 180), subjectId: sid, lgsTopicId: topicId, bookId: book ? book.id : null, itemId: item ? item.id : null, title: String(r.title || (subj ? subj.name : 'Oturum')).slice(0, 160), done: false, reason: typeof r.reason === 'string' ? r.reason : '' });
+  });
+  return { sessions, errors, dropped };
+}
+
+/* ============================ 6. ai ============================ */
+class AiError extends Error { constructor(m, raw) { super(m); this.raw = raw; } }
+const aiFlags = { fallbacks: true, beta: true, format: true };
+const aiRun = { ctrl: null, busy: false, userCancel: false };
+const DEFAULT_MODEL = 'claude-sonnet-5-5';
+const WEEK_PLAN_SCHEMA = { type: 'object', properties: { summary: { type: 'string' }, sessions: { type: 'array', items: { type: 'object', properties: { day: { type: 'integer', enum: [0, 1, 2, 3, 4, 5, 6] }, start: { type: 'string' }, durationMin: { type: 'integer' }, subjectId: { type: 'string' }, lgsTopicId: { type: ['string', 'null'] }, bookId: { type: ['string', 'null'] }, itemId: { type: ['string', 'null'] }, title: { type: 'string' }, reason: { type: 'string' } }, required: ['day', 'start', 'durationMin', 'subjectId', 'lgsTopicId', 'bookId', 'itemId', 'title', 'reason'], additionalProperties: false } }, tips: { type: 'array', items: { type: 'string' } } }, required: ['summary', 'sessions', 'tips'], additionalProperties: false };
+const DATA_REFRESH_SCHEMA = { type: 'object', properties: { nextExam: { type: 'object', properties: { name: { type: 'string' }, date: { type: 'string' }, status: { type: 'string', enum: ['announced', 'estimated'] }, note: { type: 'string' } }, required: ['name', 'date', 'status', 'note'], additionalProperties: false }, years: { type: 'array', items: { type: 'integer' } }, subjects: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, topics: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, counts: { type: 'array', items: { type: 'object', properties: { year: { type: 'integer' }, count: { type: 'integer' }, estimated: { type: 'boolean' } }, required: ['year', 'count', 'estimated'], additionalProperties: false } } }, required: ['id', 'counts'], additionalProperties: false } } }, required: ['id', 'topics'], additionalProperties: false } }, sources: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, url: { type: 'string' }, usedFor: { type: 'string' } }, required: ['title', 'url', 'usedFor'], additionalProperties: false } }, changeSummary: { type: 'string' } }, required: ['nextExam', 'years', 'subjects', 'sources', 'changeSummary'], additionalProperties: false };
+const SYS_WEEK = `Sen deneyimli bir Türk ortaokul rehber öğretmeni ve LGS koçusun. 8. sınıf öğrencisi için gerçekçi, uygulanabilir, dengeli bir HAFTALIK çalışma programı hazırlarsın.
+Kurallar:
+- Yalnızca verilen subjectId, lgsTopicId, bookId ve itemId değerlerini kullan; uydurma kimlik yazma. Uygun kimlik yoksa null ver.
+- Her günün toplam süresi o günün dakika bütçesini aşmasın. Oturumlar 30-60 dk; her 2 oturumdan sonra mola varsay (molaları oturum olarak yazma).
+- Öncelik: LGS'de çok soru gelen ve henüz bitmemiş konular; katsayısı 4 olan dersler (Türkçe, Matematik, Fen) daha fazla süre alır, ama hiçbir ders tamamen ihmal edilmez.
+- Aynı gün aynı dersi en fazla 2 kez koy; zor sayısal konuları günün başına al. Hafta içinde en az bir karışık tekrar/deneme oturumu ekle.
+- Sınava 60 günden az kaldıysa tekrar ve deneme oranını artır.
+- day: 0=Pazartesi … 6=Pazar. start "HH:MM" biçiminde ya da saat önemsizse "" olsun.
+- title kısa ve çocuğun anlayacağı Türkçe olsun (ör. "Üslü İfadeler — 2 test çöz"). reason tek cümle.
+- summary 2-3 cümle, tips en fazla 4 kısa motive edici ve pratik öneri.
+Yanıtı yalnızca istenen JSON şemasına uygun tek bir JSON nesnesi olarak ver.`;
+const SYS_CONVERT = `Sana bir öğrencinin haftalık ders çalışma programı serbest metin, tablo veya liste olarak verilecek. Bunu verilen şemaya dönüştür.
+Ders adlarını verilen ders listesindeki subjectId değerleriyle eşleştir; eşleşmeyen satırları atla ve summary içinde belirt. Konu adı verilen konu listesinden biriyle açıkça eşleşiyorsa lgsTopicId ver, yoksa null. bookId ve itemId her zaman null. Süre yazmıyorsa 40 dk varsay. reason boş string olabilir, tips boş dizi olabilir.
+Yanıtı yalnızca şemaya uygun tek bir JSON nesnesi olarak ver.`;
+const sysRefresh = () => `Sen LGS (Liselere Geçiş Sistemi) verilerini derleyen titiz bir eğitim araştırmacısısın. Görevin: verilen mevcut veri setini güncellemek.
+- Konu ve ders kimliklerini (id) DEĞİŞTİRME, yeni konu ekleme, konu silme. Yalnızca soru sayılarını, yılları, sınav tarihini ve kaynakları güncelle.
+- Her ders için her yılın konu toplamı dersin soru sayısına eşit olmalı (Türkçe/Matematik/Fen 20, diğerleri 10).
+- MEB konu bazlı dağılım yayımlamaz; üçüncü taraf sınıflandırmalar çelişiyorsa en çok tekrarlanan değeri seç ve estimated=true yap. Emin olmadığın her değer estimated=true.
+- 2023 sınavında yalnızca 1. dönem konuları kapsamdaydı; 2. dönem konuları o yıl 0'dır.
+- Sınav tarihi resmî olarak (MEB/ÖDSGM) açıklandıysa status="announced", değilse "estimated".
+- Uydurma kaynak yazma; yalnızca gerçekten kullandığın URL'leri ver.
+- changeSummary: Türkçe, en fazla 5 madde halinde neyin değiştiği.
+Yanıtı yalnızca şu yapıda tek bir JSON nesnesi olarak ver (açıklama metni yazma): ${JSON.stringify(DATA_REFRESH_SCHEMA)}`;
+
+function parseJsonLoose(text) {
+  const t = String(text || '').trim();
+  const tries = [() => t];
+  tries.push(() => { const m = /```(?:json)?\s*([\s\S]*?)```/i.exec(t); if (!m) throw 0; return m[1].trim(); });
+  tries.push(() => { const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b <= a) throw 0; return t.slice(a, b + 1); });
+  tries.push(() => { const a = t.indexOf('{'), b = t.lastIndexOf('}'); if (a < 0 || b <= a) throw 0; return t.slice(a, b + 1).replace(/,\s*([\]}])/g, '$1'); });
+  for (const f of tries) { try { return JSON.parse(f()); } catch (e) { /* sonrakini dene */ } }
+  throw new AiError('Yanıt JSON olarak ayrıştırılamadı.', t);
+}
+function mapHttpError(status, msg) {
+  if (status === 401) return 'API anahtarı geçersiz.';
+  if (status === 403) return 'Yetki yok (403).';
+  if (status === 429) return 'Çok fazla istek; biraz sonra dene.';
+  if (status === 529 || status >= 500) return 'Servis meşgul; tekrar dene.';
+  return `İstek reddedildi (${status})${msg ? ': ' + msg : ''}`;
+}
+async function callClaude({ system, user, schema, effort, maxTokens, useWebSearch, lenient }) {
+  const key = state.settings.apiKey;
+  if (!key) throw new AiError('API anahtarı yok. Ayarlar sekmesinden ekle.');
+  const ctrl = new AbortController(); aiRun.ctrl = ctrl; aiRun.userCancel = false;
+  let timedOut = false; const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, 180000);
+  const build = messages => {
+    const useFormat = schema && aiFlags.format;
+    const body = {
+      model: state.settings.model || DEFAULT_MODEL, max_tokens: maxTokens ?? 16000,
+      system: schema && !aiFlags.format ? system + '\n\nŞema: ' + JSON.stringify(schema) : system,
+      messages,
+      output_config: Object.assign({ effort: effort ?? 'medium' }, useFormat ? { format: { type: 'json_schema', schema } } : {})
+    };
+    if (aiFlags.fallbacks) body.fallbacks = 'default';
+    if (useWebSearch) body.tools = [{ type: 'web_search_20260209', name: 'web_search', max_uses: 6 }];
+    return body;
+  };
+  const headers = () => {
+    const h = { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' };
+    if (aiFlags.beta) h['anthropic-beta'] = 'server-side-fallback-2026-07-01';
+    return h;
+  };
+  const post = async messages => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      let res;
+      try { res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: headers(), body: JSON.stringify(build(messages)), signal: ctrl.signal }); }
+      catch (e) { if (e.name === 'AbortError') throw e; throw new AiError('Bağlantı yok (çevrimdışı olabilirsin).'); }
+      if (res.ok) return res.json();
+      const j = await res.json().catch(() => null); const msg = j?.error?.message || '';
+      if (res.status === 400) {
+        const low = msg.toLowerCase();
+        if ((aiFlags.fallbacks || aiFlags.beta) && /fallbacks|anthropic-beta/.test(low)) { aiFlags.fallbacks = false; aiFlags.beta = false; continue; }
+        if (aiFlags.format && /format|json_schema/.test(low)) { aiFlags.format = false; continue; }
+      }
+      throw new AiError(mapHttpError(res.status, msg));
+    }
+    throw new AiError('İstek uyumluluk denemelerinden sonra da reddedildi.');
+  };
+  try {
+    let messages = [{ role: 'user', content: user }], data;
+    for (let turn = 0; turn < 4; turn++) {
+      data = await post(messages);
+      if (data.stop_reason === 'pause_turn' && turn < 3) { messages = [...messages, { role: 'assistant', content: data.content }]; continue; }
+      break;
+    }
+    if (lenient) return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    if (data.stop_reason === 'refusal') throw new AiError('Yapay zekâ bu isteği yanıtlayamadı.');
+    if (data.stop_reason === 'max_tokens') throw new AiError('Yanıt yarıda kesildi; daha kısa hafta/az konu ile dene.');
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    if (!text.trim()) throw new AiError('Yapay zekâdan boş yanıt geldi.');
+    return text;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new AiError(timedOut ? 'Zaman aşımı (180 sn); tekrar dene.' : 'İstek iptal edildi.');
+    throw e;
+  } finally { clearTimeout(timer); aiRun.ctrl = null; }
+}
+async function runAi(btn, fn) {
+  if (aiRun.busy) return;
+  aiRun.busy = true; relocateOverlays(); document.body.classList.add('ai-busy'); if (btn) btn.disabled = true;
+  try { return await fn(); }
+  catch (e) {
+    if (e instanceof AiError) {
+      showToast(e.message, 'error');
+      if (e.raw) openModal({ title: 'Yanıt ayrıştırılamadı', body: el('div', null, [el('p', { text: e.message }), el('details', null, [el('summary', { text: 'Ayrıntılar' }), el('pre', { class: 'raw', text: e.raw })])]), buttons: [{ label: 'Kapat' }] });
+    } else { console.error(e); showToast('Beklenmeyen hata: ' + e.message, 'error'); }
+  } finally { aiRun.busy = false; document.body.classList.remove('ai-busy'); if (btn) btn.disabled = false; }
+}
+const hasKey = () => !!state.settings.apiKey;
+
+function weekContext(ws) {
+  const years = selectedYears();
+  const subjects = state.subjects.map(st => {
+    const ls = st.lgsSubjectId ? lgsSubject(st.lgsSubjectId) : null;
+    const topics = ls ? ls.topics.map(t => {
+      const s = topicStatus(t.id);
+      if (s.status === 'done') return { lgsTopicId: t.id, name: t.name, status: 'done' };
+      return { lgsTopicId: t.id, name: t.name, avgQuestions: +topicWeight(t, years).toFixed(1), status: s.status, completionPct: Math.round(s.completion * 100), highWeight: isHighWeight(t, ls, years) };
+    }) : [];
+    const books = subjectBooks(st.id).map(b => ({ bookId: b.id, title: b.title, openItems: b.items.filter(it => !itemComplete(it)).slice(0, 15).map(it => ({ itemId: it.id, title: it.title, lgsTopicId: it.lgsTopicId, remaining: it.total - it.done, unit: it.unit })) })).filter(b => b.openItems.length);
+    return { subjectId: st.id, name: st.name, coefficient: ls?.coefficient ?? 1, questionCount: ls?.questionCount ?? null, progressPct: Math.round(subjectProgress(st.id).frac * 100), topics, books };
+  });
+  return { subjects };
+}
+async function aiSuggestWeek(ws, userNote) {
+  const days = daysToExam();
+  const user = `Hafta: ${ws} (Pazartesi) – ${addDays(ws, 6)}. Bugün: ${todayKey()}. LGS tarihi: ${days == null ? 'girilmedi' : `${examDateStr()} (${days} gün kaldı)`}.
+Günlük dakika bütçesi (0=Pzt…6=Paz): ${JSON.stringify(dayBudgets())}
+Ek istek (veliden/öğrenciden): ${userNote || 'yok'}
+Dersler ve konular (JSON):
+${JSON.stringify(weekContext(ws))}`;
+  const text = await callClaude({ system: SYS_WEEK, user, schema: WEEK_PLAN_SCHEMA, effort: 'medium' });
+  const obj = parseJsonLoose(text);
+  const norm = normalizePlanSessions(obj.sessions);
+  return { plan: mkPlan(ws, 'ai', norm.sessions, ''), summary: String(obj.summary || ''), tips: Array.isArray(obj.tips) ? obj.tips.map(String).slice(0, 4) : [], dropped: norm.dropped, errors: norm.errors };
+}
+async function aiConvertText(pastedText) {
+  const subjects = state.subjects.map(st => { const ls = st.lgsSubjectId ? lgsSubject(st.lgsSubjectId) : null; return { subjectId: st.id, name: st.name, topics: ls ? ls.topics.map(t => ({ lgsTopicId: t.id, name: t.name })) : [] }; });
+  const user = `Ders listesi: ${JSON.stringify(subjects)}\n\nProgram metni:\n${pastedText}`;
+  const text = await callClaude({ system: SYS_CONVERT, user, schema: WEEK_PLAN_SCHEMA, effort: 'low' });
+  const obj = parseJsonLoose(text);
+  const norm = normalizePlanSessions(obj.sessions);
+  return { sessions: norm.sessions, errors: norm.errors, summary: String(obj.summary || '') };
+}
+function validateRefresh(r) {
+  if (!r || typeof r !== 'object') throw new AiError('Yanıt bir nesne değil.');
+  const out = { nextExam: r.nextExam && typeof r.nextExam === 'object' ? r.nextExam : {}, years: Array.isArray(r.years) ? r.years.filter(Number.isInteger) : [], subjects: [], sources: [], changeSummary: String(r.changeSummary || '') };
+  (Array.isArray(r.subjects) ? r.subjects : []).forEach(s => { if (s && typeof s.id === 'string' && Array.isArray(s.topics)) out.subjects.push({ id: s.id, topics: s.topics.filter(t => t && typeof t.id === 'string' && Array.isArray(t.counts)).map(t => ({ id: t.id, counts: t.counts.filter(c => c && Number.isInteger(c.year) && Number.isInteger(c.count) && c.count >= 0) })) }); });
+  (Array.isArray(r.sources) ? r.sources : []).forEach(s => { if (s && typeof s.url === 'string' && /^https?:\/\//.test(s.url)) out.sources.push({ title: String(s.title || s.url), url: s.url, usedFor: String(s.usedFor || '') }); });
+  return out;
+}
+async function aiRefreshData() {
+  const cur = activeData();
+  const web = state.settings.useWebSearch !== false;
+  const short = { nextExam: cur.exam.nextExam, years: cur.years, subjects: cur.subjects.map(s => ({ id: s.id, name: s.name, questionCount: s.questionCount, topics: s.topics.map(t => ({ id: t.id, name: t.name, semester: t.semester, counts: t.counts })) })) };
+  const user = `Bugün: ${todayKey()}. Son 5 LGS sınavının (en son yapılan dahil) konu bazlı soru sayılarını ve bir sonraki LGS tarihini güncelle.\nMevcut veri (kısaltılmış):\n${JSON.stringify(short)}`;
+  const text = await callClaude({ system: sysRefresh(), user, schema: web ? null : DATA_REFRESH_SCHEMA, effort: 'high', maxTokens: 16000, useWebSearch: web });
+  const refresh = validateRefresh(parseJsonLoose(text));
+  const merged = mergeRefresh(cur, refresh);
+  const v = validateLgsData(merged);
+  if (!v.ok) throw new AiError('Birleştirilen veri geçersiz: ' + v.errors.join(' '), text);
+  return { data: v.data, warnings: v.warnings, changeSummary: refresh.changeSummary, source: 'ai' };
+}
+async function aiTest() {
+  await callClaude({ system: 'Kısa yanıt ver.', user: 'ping', effort: 'low', maxTokens: 16, lenient: true });
+}
+
+/* ============================ 7. charts ============================ */
+const charts = {}; let chartQueue = [];
+function destroyCharts() { for (const k of Object.keys(charts)) { try { charts[k].destroy(); } catch (e) { /* yoksay */ } delete charts[k]; } chartQueue = []; }
+function flushCharts() { const q = chartQueue; chartQueue = []; q.forEach(f => { try { f(); } catch (e) { console.error('Grafik hatası', e); } }); }
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let chartSeq = 0;
+function legendEl(parts) { return el('div', { class: 'legend' }, parts.map(p => el('span', null, [el('i', { style: `background:${p.color}` }), p.label]))); }
+function renderPie(host, parts, opts = {}) {
+  const total = parts.reduce((a, p) => a + p.value, 0);
+  const wrap = el('div', { class: 'pie-wrap' + (opts.small ? ' sm' : '') });
+  const center = el('div', { class: 'pie-center', text: opts.center || '' });
+  host.appendChild(wrap);
+  const rest = 'var(--muted-fill)';
+  if (!window.Chart) {
+    let acc = 0; const segs = [];
+    parts.forEach(p => { const a = total ? acc / total * 100 : 0; acc += p.value; const b = total ? acc / total * 100 : 0; segs.push(`${p.color} ${a}% ${b}%`); });
+    wrap.appendChild(el('div', { class: 'conic', style: `background:${total ? `conic-gradient(${segs.join(',')})` : rest}` }));
+  } else {
+    const canvas = el('canvas'); wrap.appendChild(canvas);
+    chartQueue.push(() => {
+      const key = 'pie' + (++chartSeq);
+      charts[key] = new Chart(canvas, { type: 'doughnut', data: { labels: parts.map(p => p.label), datasets: [{ data: total ? parts.map(p => p.value) : [1], backgroundColor: total ? parts.map(p => p.color.startsWith('var(--') ? cssVar(p.color.slice(4, -1)) : p.color) : [cssVar('--muted-fill')], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '68%', animation: false, plugins: { legend: { display: false }, tooltip: { enabled: !!total } } } });
+    });
+  }
+  wrap.appendChild(center);
+  if (opts.legend) host.appendChild(legendEl(parts));
+}
+const renderRing = (host, frac, color, center, small) => renderPie(host, [{ label: 'Tamamlanan', value: frac, color }, { label: 'Kalan', value: Math.max(0, 1 - frac), color: 'var(--muted-fill)' }], { center, small });
+function renderBar(host, cfg) {
+  const { labels, datasets } = cfg; const horizontal = cfg.horizontal !== false;
+  host.style.height = (cfg.height || Math.max(160, labels.length * (datasets.length > 1 ? 14 * datasets.length + 10 : 26) + 50)) + 'px';
+  if (!window.Chart) {
+    host.style.height = 'auto';
+    const max = Math.max(cfg.max || 0, ...datasets.flatMap(d => d.data.filter(Number.isFinite)), 0.0001);
+    labels.forEach((lb, i) => datasets.forEach((d, di) => {
+      const v = d.data[i]; const col = d.colors ? d.colors[i] : d.color;
+      host.appendChild(el('div', { class: 'fb-bar' }, [el('span', { class: 'lbl', title: lb, text: datasets.length > 1 ? `${lb} (${d.label})` : lb }), el('div', { class: 'tr' }, el('i', { style: `width:${clamp((v || 0) / max * 100, 0, 100)}%;background:${col}` })), el('span', { text: v == null ? '—' : fmtNum(v) })]));
+    }));
+    return;
+  }
+  const canvas = el('canvas'); host.appendChild(canvas);
+  chartQueue.push(() => {
+    const txt = cssVar('--muted'), grid = cssVar('--border');
+    charts['bar' + (++chartSeq)] = new Chart(canvas, {
+      type: 'bar',
+      data: { labels, datasets: datasets.map(d => ({ label: d.label, data: d.data, backgroundColor: d.colors || d.color, borderRadius: 4, stack: cfg.stacked ? 's' : undefined })) },
+      options: { indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: datasets.length > 1, labels: { color: cssVar('--text') } } },
+        scales: { x: { stacked: !!cfg.stacked, ticks: { color: txt }, grid: { color: grid }, beginAtZero: true }, y: { stacked: !!cfg.stacked, ticks: { color: txt, autoSkip: false }, grid: { color: grid }, beginAtZero: true } } }
+    });
+  });
+}
+function renderLine(host, cfg) {
+  host.style.height = (cfg.height || 260) + 'px';
+  if (!window.Chart) {
+    host.style.height = 'auto'; host.style.overflowX = 'auto';
+    const rows = cfg.datasets.map(d => el('tr', null, [el('td', { text: d.label }), ...d.data.map(v => el('td', { class: 'num', text: v == null ? '—' : fmtNum(v) }))]));
+    host.appendChild(el('table', null, [el('tr', null, [el('th'), ...cfg.labels.map(l => el('th', { class: 'num', text: l }))]), ...rows]));
+    return;
+  }
+  const canvas = el('canvas'); host.appendChild(canvas);
+  chartQueue.push(() => {
+    charts['line' + (++chartSeq)] = new Chart(canvas, {
+      type: 'line', data: { labels: cfg.labels, datasets: cfg.datasets.map(d => ({ label: d.label, data: d.data, borderColor: d.color, backgroundColor: d.color, tension: .25, spanGaps: true })) },
+      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: cssVar('--text') } } }, scales: { x: { ticks: { color: cssVar('--muted') }, grid: { color: cssVar('--border') } }, y: { ticks: { color: cssVar('--muted') }, grid: { color: cssVar('--border') }, beginAtZero: true } } }
+    });
+  });
+}
+
+/* ============================ 8. ui ============================ */
+function relocateOverlays(exclude) {
+  const open = [...document.querySelectorAll('dialog[open]')].filter(d => d !== exclude);
+  const host = open.length ? open[open.length - 1] : document.body;
+  ['#toasts', '#aibar'].forEach(s => { const n = $(s); if (n && n.parentNode !== host) host.appendChild(n); });
+}
+function showToast(msg, type = 'info', action) {
+  relocateOverlays();
+  const box = $('#toasts');
+  const t = el('div', { class: 'toast ' + type }, [el('span', { text: msg })]);
+  if (action) t.appendChild(el('button', { type: 'button', text: action.label, onClick: () => { t.remove(); action.onClick(); } }));
+  box.appendChild(t);
+  setTimeout(() => t.remove(), action ? 7000 : 4000);
+}
+function openModal({ title, body, buttons = [], wide = false, sheet = false, onClose }) {
+  const dlg = el('dialog', { class: 'modal' + (wide ? ' wide' : '') + (sheet ? ' sheet' : '') });
+  const close = () => { try { dlg.close(); } catch (e) { dlg.remove(); } };
+  const bodyBox = el('div', { class: 'modal-body' }, body);
+  dlg.appendChild(el('div', { class: 'modal-head' }, [el('h3', { text: title }), el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Kapat', text: '×', onClick: close })]));
+  dlg.appendChild(bodyBox);
+  const btnEls = buttons.map(b => {
+    const be = el('button', { type: 'button', class: 'btn ' + (b.cls || ''), text: b.label });
+    be.addEventListener('click', async () => { const r = b.onClick ? await b.onClick(be) : undefined; if (r !== false) close(); });
+    return be;
+  });
+  if (btnEls.length) dlg.appendChild(el('div', { class: 'modal-foot' }, btnEls));
+  dlg.addEventListener('close', () => { relocateOverlays(dlg); dlg.remove(); onClose && onClose(); });
+  document.body.appendChild(dlg);
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+  relocateOverlays();
+  return { dialog: dlg, body: bodyBox, close, buttons: btnEls };
+}
+function confirmDialog(msg, okLabel = 'Evet', danger = false) {
+  return new Promise(res => {
+    let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+    openModal({ title: 'Onay', body: el('p', { text: msg }), buttons: [{ label: 'Vazgeç', onClick: () => fin(false) }, { label: okLabel, cls: danger ? 'danger' : 'primary', onClick: () => fin(true) }], onClose: () => fin(false) });
+  });
+}
+let menuEl = null, menuTimer = null;
+const menuOutside = e => { if (menuEl && !menuEl.contains(e.target)) closeMenu(); };
+function closeMenu() { clearTimeout(menuTimer); document.removeEventListener('click', menuOutside, true); if (menuEl) { menuEl.remove(); menuEl = null; } }
+function popMenu(anchor, items) {
+  closeMenu();
+  const m = el('div', { class: 'menu', role: 'menu' }, items.map(it => el('button', { type: 'button', class: 'menu-item' + (it.danger ? ' danger' : ''), text: it.label, onClick: () => { closeMenu(); it.fn(); } })));
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(r.right - mw, innerWidth - mw - 8)) + 'px';
+  m.style.top = (r.bottom + 4 + mh > innerHeight - 8 ? Math.max(8, r.top - mh - 4) : r.bottom + 4) + 'px';
+  menuEl = m;
+  menuTimer = setTimeout(() => document.addEventListener('click', menuOutside, true), 0);
+}
+
+/* router + chrome */
+const todayIdx = () => (new Date().getDay() + 6) % 7;
+const ui = { programWeek: weekStartKey(new Date()), selDay: todayIdx(), preview: null, justDone: null, analysisSubject: 'all', analysisSort: { key: 'avg', dir: -1 }, analysisByYear: false, normalize: false, bookForm: { subjectId: '', title: '', count: '', topics: '', showTopics: false } };
+const STATUS_LABEL = { done: 'Bitti', inProgress: 'Devam', notStarted: 'Başlanmadı' };
+const card = (title, kids, cls = '') => el('section', { class: 'card ' + cls }, [title ? el('h2', { text: title }) : null, kids]);
+const btn = (label, onClick, cls = '', extra) => el('button', Object.assign({ type: 'button', class: 'btn ' + cls, onClick }, extra || {}), label);
+const navigate = h => { if (location.hash === h) rerender(false); else location.hash = h; };
+const ROUTES = ['program', 'kitaplar', 'lgs', 'ayarlar'];
+const visibleSubjects = () => state.subjects.filter(s => s.visible).sort((a, b) => a.order - b.order);
+const lgsShort = ls => SUBJ_SHORT[ls.id] || ls.shortName;
+function inkOn(color) {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(color || '').trim()); if (!m) return '#fff';
+  let h = m[1]; if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  return (0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)) > 0.5 ? '#1c2330' : '#fff';
+}
+function topicMenuItems(id) {
+  return [['Otomatik', null], ['Bitti', 'done'], ['Devam ediyor', 'inProgress'], ['Başlanmadı', 'notStarted']].map(([label, v]) => ({ label, fn: () => { if (v) state.topicOverrides[id] = v; else delete state.topicOverrides[id]; changed(); } }));
+}
+
+function normalizeHash() {
+  const raw = (location.hash || '').replace(/^#/, '');
+  const p = raw.split('/');
+  let target = null;
+  if (!raw) target = '#program';
+  else if (p[0] === 'genel') target = '#program';
+  else if (p[0] === 'analiz') target = '#lgs';
+  else if (p[0] === 'ders') {
+    let id = ''; try { id = decodeURIComponent(p.slice(1).join('/')); } catch (e) { /* yoksay */ }
+    if (subjectState(id)) { state.ui.bookSubject = id; saveState(); }
+    target = '#kitaplar';
+  } else if (!ROUTES.includes(p[0])) target = '#program';
+  if (target && target !== location.hash) { try { history.replaceState(null, '', target); } catch (e) { location.hash = target; } }
+}
+const parseRoute = () => { const n = (location.hash || '').replace(/^#/, '').split('/')[0]; return { name: ROUTES.includes(n) ? n : 'program' }; };
+function applyTheme() {
+  const t = state.profile.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
+}
+function renderStorageWarn() {
+  const box = $('#storage-warn'); box.replaceChildren();
+  if (!storageOK) box.appendChild(el('div', { class: 'banner', text: 'Tarayıcı kaydetmeye izin vermiyor; yedeği dışa aktarmayı unutma.' }));
+  if (corruptNote) box.appendChild(el('div', { class: 'banner', text: 'Kayıtlı veri okunamadı ve boş başlandı. Eski veri "lgsTakip.v1.corrupt" anahtarında yedeklendi.' }));
+}
+function renderChrome() {
+  applyTheme(); renderStorageWarn();
+  const route = parseRoute();
+  const tabs = $('#tabs'); tabs.replaceChildren();
+  [['program', '📅', 'Programım'], ['kitaplar', '📚', 'Kitaplarım'], ['lgs', '📊', 'LGS']].forEach(([n, ic, lb]) => {
+    tabs.appendChild(el('button', { type: 'button', class: 'tab' + (route.name === n ? ' active' : ''), 'aria-current': route.name === n ? 'page' : null, onClick: () => navigate('#' + n) }, [el('span', { class: 'ic', text: ic }), el('span', { class: 'lb', text: lb })]));
+  });
+  $('#btn-settings').classList.toggle('active', route.name === 'ayarlar');
+}
+function rerender(keepScroll = true) {
+  const y = window.scrollY;
+  closeMenu(); destroyCharts(); normalizeHash(); renderChrome();
+  const v = $('#view'); v.replaceChildren();
+  const r = parseRoute();
+  try { ({ program: viewProgram, kitaplar: viewBooks, lgs: viewLgs, ayarlar: viewSettings })[r.name](v); }
+  catch (e) { console.error(e); v.appendChild(card('Hata', 'Görünüm çizilirken bir hata oluştu: ' + e.message)); }
+  flushCharts();
+  window.scrollTo(0, keepScroll ? y : 0);
+}
+function changed() { saveState(); rerender(true); }
+
+const statusBadge = (st, onClick) => {
+  const label = st.noMaterial && st.status === 'notStarted' ? 'Kitapta yok' : STATUS_LABEL[st.status];
+  const cls = st.status === 'done' ? 'done' : st.status === 'inProgress' ? 'prog' : 'none';
+  return el('span', { class: 'badge ' + cls + (onClick ? ' btnlike' : ''), text: label + (st.override ? ' •' : ''), onClick, role: onClick ? 'button' : null, tabindex: onClick ? '0' : null });
+};
+const progBar = (frac, color, cls = '') => el('div', { class: 'bar ' + cls + (frac >= 0.9999 ? ' complete' : '') }, el('i', { style: `width:${clamp(frac, 0, 1) * 100}%;${color && frac < 0.9999 ? 'background:' + color : ''}` }));
+function planNum(plan) { const s = plan?.sessions || []; return { n: s.length, done: s.filter(x => x.done).length, minDone: s.filter(x => x.done).reduce((a, x) => a + x.durationMin, 0), min: s.reduce((a, x) => a + x.durationMin, 0) }; }
+function makeTappable(node, fn) {
+  node.setAttribute('role', 'button'); node.setAttribute('tabindex', '0');
+  node.addEventListener('click', fn);
+  node.addEventListener('keydown', e => { if (e.target === node && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fn(e); } });
+  return node;
+}
+/* yatay kaydırılabilir çip şeridi: options [{id,label,emoji,color}] */
+function chipStrip(options, selected, onPick, cls = '') {
+  const strip = el('div', { class: 'chipstrip ' + cls, role: 'listbox' });
+  let cur = selected;
+  const paint = () => [...strip.children].forEach((c, i) => { const on = options[i].id === cur; c.classList.toggle('on', on); c.setAttribute('aria-selected', String(on)); });
+  options.forEach(o => strip.appendChild(el('button', { type: 'button', class: 'schip', role: 'option', style: o.color ? `--c:${o.color};--ink:${inkOn(o.color)}` : null, onClick: () => { cur = o.id; paint(); onPick(o.id); } },
+    [o.emoji ? el('span', { text: o.emoji }) : null, el('span', { class: 'tx', text: o.label })])));
+  paint();
+  requestAnimationFrame(() => { const on = strip.querySelector('.schip.on'); if (on && on.offsetLeft + on.offsetWidth > strip.clientWidth) strip.scrollLeft = on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2; });
+  return strip;
+}
+const subjectOptions = (list, extra) => [...(extra || []), ...list.map(s => ({ id: s.id, label: subjShort(s.id), emoji: subjEmoji(s.id), color: s.color }))];
+
+/* ============================ 9. views ============================ */
+/* ---- sıralama / sıra ---- */
+const planFor = ws => (ui.preview && ui.preview.weekStart === ws) ? ui.preview.plan : state.plans[ws];
+function sortedDay(plan, d) {
+  const list = (plan?.sessions || []).map((s, i) => ({ s, i })).filter(x => x.s.day === d);
+  const ord = x => Number.isFinite(x.s.order) ? x.s.order : x.i;
+  list.sort((a, b) => {
+    const ta = a.s.start, tb = b.s.start;
+    if (ta && tb) return ta.localeCompare(tb) || ord(a) - ord(b);
+    if (ta) return -1; if (tb) return 1;
+    return ord(a) - ord(b);
+  });
+  return list.map(x => x.s);
+}
+const nextOrder = plan => Math.max(-1, ...plan.sessions.map((s, i) => Number.isFinite(s.order) ? s.order : i)) + 1;
+function moveTask(ws, s, dir) {
+  const list = sortedDay(state.plans[ws], s.day);
+  const i = list.indexOf(s), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length || list[i].start || list[j].start) return false;
+  [list[i], list[j]] = [list[j], list[i]];
+  list.forEach((x, k) => { x.order = k; });
+  return true;
+}
+const canMove = (ws, s, dir) => {
+  const list = sortedDay(state.plans[ws], s.day); const i = list.indexOf(s), j = i + dir;
+  return i >= 0 && j >= 0 && j < list.length && !list[i].start && !list[j].start;
+};
+
+/* ---- Programım ---- */
+function weekRange(ws) {
+  const we = addDays(ws, 6);
+  return `${fmtDate(ws, parseKey(ws).getMonth() !== parseKey(we).getMonth() ? { day: 'numeric', month: 'long' } : { day: 'numeric' })}–${fmtDate(we, { day: 'numeric', month: 'long' })}`;
+}
+function setWeek(k) {
+  ui.programWeek = k; ui.preview = null;
+  if (k === weekStartKey(new Date())) ui.selDay = todayIdx();
+  rerender(true);
+}
+function viewProgram(root) {
+  const ws = ui.programWeek, curWs = weekStartKey(new Date());
+  const pv = ui.preview && ui.preview.weekStart === ws ? ui.preview : null;
+  const plan = planFor(ws);
+  const d = clamp(ui.selDay, 0, 6);
+  const page = el('div', { class: 'page' }); root.appendChild(page);
+  const pn = planNum(plan); const days = daysToExam();
+  // 1 üst şerit
+  page.appendChild(el('section', { class: 'hero no-print' }, [
+    el('div', { class: 'row between' }, [el('h1', { text: state.profile.studentName ? `Merhaba ${state.profile.studentName} 👋` : 'Merhaba 👋' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
+    el('div', { class: 'sub', text: pn.n ? `${ws === curWs ? 'Bu hafta' : 'Seçili hafta'} ${pn.done} / ${pn.n} görev ✔` : (ws === curWs ? 'Bu hafta henüz görev yok' : 'Bu haftada görev yok') }),
+    progBar(pn.n ? pn.done / pn.n : 0, 'var(--ok)')]));
+  // 2 hafta seçici
+  page.appendChild(el('div', { class: 'weeknav no-print' }, [
+    el('button', { type: 'button', class: 'arrow', 'aria-label': 'Önceki hafta', text: '‹', onClick: () => setWeek(addDays(ws, -7)) }),
+    el('button', { type: 'button', class: 'wk', onClick: () => { if (ws !== curWs) setWeek(curWs); } }, [el('b', { text: weekRange(ws) }), ws !== curWs ? el('span', { class: 'small muted', text: 'Bu haftaya dön' }) : null]),
+    el('button', { type: 'button', class: 'arrow', 'aria-label': 'Sonraki hafta', text: '›', onClick: () => setWeek(addDays(ws, 7)) })]));
+  // 3 gün şeridi
+  const strip = el('div', { class: 'daystrip no-print' }); let selPill = null;
+  for (let i = 0; i < 7; i++) {
+    const k = addDays(ws, i); const list = sortedDay(plan, i); const dn = list.filter(s => s.done).length;
+    const pill = el('button', { type: 'button', class: 'dpill' + (i === d ? ' sel' : '') + (k === todayKey() ? ' today' : '') + (list.length && dn === list.length ? ' full' : ''), 'aria-label': `${DAY_NAMES[i]} ${parseKey(k).getDate()}`, onClick: () => { ui.selDay = i; rerender(true); } },
+      [el('span', { class: 'dn', text: DAY_SHORT[i] }), el('span', { class: 'dd', text: String(parseKey(k).getDate()) }), el('span', { class: 'dc', text: list.length ? `${dn}/${list.length}` : '·' })]);
+    if (i === d) selPill = pill; strip.appendChild(pill);
+  }
+  page.appendChild(strip);
+  if (selPill) strip.scrollLeft = selPill.offsetLeft - (strip.clientWidth - selPill.offsetWidth) / 2;
+  // önizleme
+  if (pv) page.appendChild(el('div', { class: 'preview-banner no-print' }, [
+    el('b', { text: `Önizleme — ${pv.title}` }), pv.summary ? el('p', { text: pv.summary }) : null,
+    pv.tips?.length ? el('ul', null, pv.tips.map(t => el('li', { text: t }))) : null,
+    pv.dropped ? el('p', { class: 'err small', text: `${pv.dropped} geçersiz görev atıldı.` }) : null,
+    el('div', { class: 'row wrapflex' }, [btn('Uygula', async () => {
+      if (state.plans[ws]?.sessions.length && !(await confirmDialog('Bu haftanın mevcut görevlerinin üzerine yazılacak. Devam?'))) return;
+      applyPlan(ws, pv.plan.source, pv.plan.sessions, ''); ui.preview = null; changed(); showToast('Program uygulandı', 'success');
+    }, 'primary'), btn('Vazgeç', () => { ui.preview = null; rerender(true); })])]));
+  // 5 hafta menüsü
+  page.appendChild(el('div', { class: 'row between wrapflex weekmenu no-print' }, [
+    plan?.note ? el('span', { class: 'small muted grow', text: '📌 ' + plan.note }) : el('span', { class: 'grow' }),
+    btn('⋯ Hafta işlemleri', e => popMenu(e.currentTarget, weekMenuItems(ws, d)), 'sm')]));
+  // 4 gün sayfası
+  const k = addDays(ws, d); const list = sortedDay(plan, d);
+  const pg = el('section', { class: 'daypage no-print' });
+  pg.appendChild(el('h2', { class: 'daytitle', text: `${DAY_NAMES[d]}, ${fmtDate(k, { day: 'numeric', month: 'long' })}` }));
+  pg.appendChild(noteRow(ws, d, plan, !!pv));
+  list.forEach(s => pg.appendChild(taskCard(s, ws, !!pv)));
+  if (!list.length) pg.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '🌤️' }), el('p', { text: `${k === todayKey() ? 'Bugün' : 'Bu gün'} için görev yok.` })]));
+  if (!pv) pg.appendChild(el('button', { type: 'button', class: 'btn primary addtask', text: '➕ Görev ekle', onClick: () => taskSheet(ws, null, d) }));
+  page.appendChild(pg);
+  page.appendChild(printWeek(plan, ws));
+}
+function printWeek(plan, ws) {
+  const box = el('div', { class: 'print-only' }, [el('h2', { text: `LGS Programım — ${weekRange(ws)}` })]);
+  for (let i = 0; i < 7; i++) {
+    const list = sortedDay(plan, i); const note = plan?.dayNotes?.[i];
+    box.appendChild(el('h3', { text: `${DAY_NAMES[i]}, ${fmtDate(addDays(ws, i), { day: 'numeric', month: 'long' })}${note ? ' — ' + note : ''}` }));
+    box.appendChild(list.length ? el('ul', { class: 'printlist' }, list.map(s => el('li', { text: `${s.done ? '☑' : '☐'} ${s.start ? s.start + ' ' : ''}${subjShort(s.subjectId)} — ${s.title} (${s.durationMin} dk)` }))) : el('p', { class: 'small', text: '—' }));
+  }
+  return box;
+}
+function noteRow(ws, d, plan, readonly) {
+  let note = plan?.dayNotes?.[d] || '';
+  const box = el('div', { class: 'daynote' });
+  const show = () => box.replaceChildren(el('button', { type: 'button', class: 'notebtn' + (note ? '' : ' blank'), text: note ? '📝 ' + note : '+ Not ekle', disabled: readonly ? true : null, onClick: edit }));
+  const edit = () => {
+    const inp = el('input', { type: 'text', value: note, maxlength: '80', placeholder: 'Örn. Dershane günü', 'aria-label': 'Gün notu' });
+    let fin = false;
+    const commit = () => { if (fin) return; fin = true; const v = inp.value.trim().slice(0, 80); if (v === note) { show(); return; } ensurePlan(ws).dayNotes[d] = v; saveState(); note = v; show(); };
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } else if (e.key === 'Escape') { fin = true; show(); } });
+    box.replaceChildren(inp); inp.focus(); inp.select();
+  };
+  show(); return box;
+}
+function taskCard(s, ws, readonly) {
+  const col = s.subjectId ? subjectColor(s.subjectId) : 'var(--muted)';
+  const b = s.bookId ? state.books.find(x => x.id === s.bookId) : null;
+  const sub = [s.start || null, subjShort(s.subjectId), b?.title, `${s.durationMin} dk`].filter(Boolean).join(' · ');
+  const c = el('div', { class: 'task' + (s.done ? ' isdone' : '') + (ui.justDone === s.id ? ' pop' : ''), style: `--sc:${col}`, 'data-id': s.id }, [
+    el('span', { class: 'temoji', text: subjEmoji(s.subjectId) }),
+    el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: sub }), s.reason ? el('div', { class: 'tsub', text: s.reason }) : null])]);
+  if (!readonly) {
+    const cb = el('button', { type: 'button', class: 'check' + (s.done ? ' on' : ''), role: 'checkbox', 'aria-checked': String(!!s.done), 'aria-label': 'Tamamlandı', text: s.done ? '✓' : '' });
+    cb.addEventListener('click', e => { e.stopPropagation(); toggleDone(ws, s); });
+    c.appendChild(cb);
+    makeTappable(c, () => taskSheet(ws, s, s.day));
+  }
+  return c;
+}
+function toggleDone(ws, s) {
+  s.done = !s.done; ui.justDone = s.done ? s.id : null;
+  const list = sortedDay(state.plans[ws], s.day);
+  changed(); ui.justDone = null;
+  if (!s.done) return;
+  if (list.length && list.every(x => x.done)) showToast(ws === weekStartKey(new Date()) && s.day === todayIdx() ? 'Bugünkü programı bitirdin! 🌟' : 'Bu günün programını bitirdin! 🌟', 'success');
+  else showToast('Aferin! 🎉', 'success');
+}
+function weekMenuItems(ws, d) {
+  const items = [
+    { label: '📋 Geçen haftayı kopyala', fn: async () => {
+      const prev = state.plans[addDays(ws, -7)]; if (!prev || !prev.sessions.length) { showToast('Geçen haftada görev yok.', 'error'); return; }
+      if (state.plans[ws]?.sessions.length && !(await confirmDialog('Bu haftanın görevlerinin üzerine yazılacak. Devam?'))) return;
+      const p = applyPlan(ws, 'manual', prev.sessions.map(s => Object.assign({}, s, { id: uid(), done: false })), '');
+      p.dayNotes = p.dayNotes.map((n, i) => n || prev.dayNotes?.[i] || '');
+      changed(); showToast('Geçen haftanın programı kopyalandı', 'success');
+    } },
+    { label: '📆 Bu günü başka güne kopyala', fn: () => copyDayModal(ws, d) },
+    { label: '🧹 Haftayı temizle', fn: async () => { if (state.plans[ws] && await confirmDialog('Bu haftanın tüm görevleri ve notları silinecek.', 'Temizle', true)) { delete state.plans[ws]; changed(); } } },
+    { label: '📥 Program yükle', fn: () => pasteModal(ws) },
+    { label: '✨ Otomatik program öner', fn: () => { const p = generateRulePlan(ws); if (!p.sessions.length) { showToast('Bu hafta için günlük süre yok veya aday konu kalmadı.', 'error'); return; } ui.preview = { weekStart: ws, plan: p, title: 'Otomatik öneri', summary: '', tips: [] }; rerender(true); } }];
+  if (hasKey()) items.push({ label: '🤖 AI ile program öner', fn: () => aiWeekModal(ws) });
+  items.push({ label: '🖨 Yazdır', fn: () => window.print() });
+  return items;
+}
+function copyDayModal(ws, d) {
+  const plan = state.plans[ws]; const list = sortedDay(plan, d);
+  if (!list.length) { showToast('Bu günde kopyalanacak görev yok.', 'error'); return; }
+  const m = openModal({ title: 'Hangi güne kopyalayalım?', sheet: true, body: el('div', { class: 'chips' }, DAY_NAMES.map((n, i) => i === d ? null : el('button', { type: 'button', class: 'chip big', text: n, onClick: () => {
+    list.forEach(s => plan.sessions.push(Object.assign({}, s, { id: uid(), day: i, done: false, order: nextOrder(plan) })));
+    ui.selDay = i; m.close(); changed(); showToast(`${list.length} görev ${n} gününe kopyalandı`, 'success');
+  } }))), buttons: [{ label: 'Vazgeç' }] });
+}
+
+/* ---- görev ekle/düzenle ---- */
+const DUR_CHIPS = [20, 30, 40, 60, 90];
+function taskSheet(ws, sess, day) {
+  const isNew = !sess;
+  const first = visibleSubjects()[0];
+  const d = sess ? { day: sess.day, start: sess.start || '', durationMin: sess.durationMin, subjectId: sess.subjectId || '', bookId: sess.bookId || null, itemId: sess.itemId || null, title: sess.title || '' }
+    : { day, start: '', durationMin: 40, subjectId: first ? first.id : '', bookId: null, itemId: null, title: '' };
+  const subs = visibleSubjects(); const own = sess && sess.subjectId && !subs.some(s => s.id === sess.subjectId) ? subjectState(sess.subjectId) : null;
+  const body = el('div', { class: 'sheetbody' });
+  const lab = t => el('div', { class: 'flabel', text: t });
+  const bookBox = el('div'), itemBox = el('div');
+  function drawBooks() {
+    bookBox.replaceChildren(); itemBox.replaceChildren();
+    if (!d.subjectId) return;
+    let books = subjectBooks(d.subjectId);
+    const cur = d.bookId ? state.books.find(x => x.id === d.bookId) : null;
+    if (cur && !books.includes(cur)) books = [...books, cur];
+    bookBox.appendChild(lab('Hangi kitap? (istersen)'));
+    bookBox.appendChild(chipStrip([{ id: '', label: 'Kitapsız' }, ...books.map(b => ({ id: b.id, label: b.title, emoji: '📚' }))], d.bookId || '', id => { d.bookId = id || null; d.itemId = null; drawBooks(); }));
+    if (!books.length) bookBox.appendChild(el('p', { class: 'small muted', text: 'Bu derse henüz kitap eklenmemiş. Kitaplarım bölümünden ekleyebilirsin.' }));
+    const b = d.bookId ? state.books.find(x => x.id === d.bookId) : null;
+    if (b && b.items.length >= 2) {
+      itemBox.appendChild(lab('Hangi bölüm?'));
+      itemBox.appendChild(chipStrip([{ id: '', label: 'Bölüm yok' }, ...b.items.map(it => ({ id: it.id, label: it.title }))], d.itemId || '', id => { d.itemId = id || null; }));
+    }
+  }
+  const subjStrip = chipStrip(subjectOptions(own ? [...subs, own] : subs, []).concat([{ id: '', label: 'Deneme', emoji: '🧪' }]), d.subjectId, id => { d.subjectId = id; d.bookId = null; d.itemId = null; drawBooks(); });
+  const titleIn = el('input', { type: 'text', value: d.title, placeholder: 'Örn. Olasılık — 2 test', maxlength: '160', 'aria-label': 'Ne yapacaksın?' });
+  titleIn.addEventListener('input', () => { d.title = titleIn.value; });
+  const durs = [...new Set([...DUR_CHIPS, d.durationMin])].sort((a, b) => a - b);
+  const durStrip = chipStrip(durs.map(n => ({ id: n, label: `${n} dk` })), d.durationMin, id => { d.durationMin = id; }, 'wrap');
+  const timeIn = el('input', { type: 'time', value: d.start, 'aria-label': 'Saat' }); timeIn.addEventListener('input', () => { d.start = timeIn.value; });
+  const ws0 = ws;
+  const dayStrip = chipStrip(DAY_NAMES.map((n, i) => ({ id: i, label: `${DAY_SHORT[i]} ${parseKey(addDays(ws0, i)).getDate()}` })), d.day, id => { d.day = id; }, 'wrap');
+  body.append(lab('Hangi ders?'), subjStrip, bookBox, itemBox, lab('Ne yapacaksın?'), titleIn, lab('Kaç dakika?'), durStrip,
+    lab('Saat (istersen)'), el('div', { class: 'row' }, [timeIn, btn('Saati sil', () => { timeIn.value = ''; d.start = ''; }, 'sm')]), lab('Hangi gün?'), dayStrip);
+  drawBooks();
+  const buttons = [{ label: 'Vazgeç' }];
+  if (!isNew) {
+    const moveRow = el('div', { class: 'row wrapflex', style: 'margin-top:14px' });
+    const hint = el('p', { class: 'small muted' });
+    const refresh = () => { const list = sortedDay(state.plans[ws], sess.day), i = list.indexOf(sess); const blocked = !!sess.start || !!list[i - 1]?.start || !!list[i + 1]?.start; up.disabled = !canMove(ws, sess, -1); down.disabled = !canMove(ws, sess, 1); hint.textContent = (up.disabled || down.disabled) && blocked ? 'Saati olan görevler saate göre sıralanır. Sırayı değiştirmek için saati sil.' : ''; };
+    const move = dir => { if (moveTask(ws, sess, dir)) { changed(); refresh(); } };
+    const up = btn('⬆ Yukarı', () => move(-1)), down = btn('⬇ Aşağı', () => move(1));
+    moveRow.append(up, down); refresh(); body.append(lab('Sırayı değiştir'), moveRow, hint);
+    buttons.unshift({ label: '🗑 Sil', cls: 'danger', onClick: async () => {
+      if (!(await confirmDialog('Bu görev silinecek.', 'Sil', true))) return false;
+      const p = state.plans[ws]; p.sessions = p.sessions.filter(x => x.id !== sess.id); changed();
+    } });
+  }
+  buttons.push({ label: 'Kaydet', cls: 'primary lg', onClick: () => {
+    const plan = ensurePlan(ws);
+    const b = d.subjectId && d.bookId ? state.books.find(x => x.id === d.bookId) : null;
+    const it = b && d.itemId ? b.items.find(x => x.id === d.itemId) : null;
+    const title = d.title.trim() || it?.title || b?.title || (d.subjectId ? subjectName(d.subjectId) : 'Deneme');
+    const keepTopic = sess && sess.subjectId === d.subjectId ? sess.lgsTopicId : null;
+    const f = { day: d.day, start: normTime(d.start), durationMin: d.durationMin, subjectId: d.subjectId, bookId: b ? b.id : null, itemId: it ? it.id : null, lgsTopicId: it?.lgsTopicId || keepTopic || null, title };
+    if (isNew) plan.sessions.push(Object.assign({ id: uid(), done: false, order: nextOrder(plan) }, f));
+    else { const t = plan.sessions.find(x => x.id === sess.id); const moved = t.day !== f.day; Object.assign(t, f); if (moved) t.order = nextOrder(plan); }
+    ui.selDay = f.day; changed(); showToast(isNew ? 'Görev eklendi ✔' : 'Kaydedildi ✔', 'success');
+  } });
+  openModal({ title: isNew ? '➕ Görev ekle' : '✏️ Görevi düzenle', sheet: true, body, buttons });
+}
+
+/* ---- kitaplar: yardımcılar ---- */
+function setItemDone(book, item, val, redraw) {
+  val = clamp(Math.round(Number(val) || 0), 0, item.total);
+  const delta = val - item.done; if (!delta) { redraw && redraw(); return; }
+  const was = itemComplete(item);
+  item.done = val; recordActivity(book.id, item.id, delta);
+  item.completedAt = itemComplete(item) ? new Date().toISOString() : null;
+  changed(); redraw && redraw();
+  if (!was && itemComplete(item)) showToast(`Aferin! 🎉 ${item.title} bitti`, 'success');
+}
+async function downloadBackup() {
+  const name = `lgs-takip-yedek-${todayKey()}.json`, obj = exportBackup();
+  try {
+    const file = new File([JSON.stringify(obj, null, 2)], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'LGS Takip yedeği' }); showToast('Yedek paylaşıldı (API anahtarı dahil değil).', 'success'); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  downloadJson(name, obj); showToast('Yedek indirildi (API anahtarı dahil değil).', 'success');
+}
+function unitTally(books) {
+  const t = {};
+  books.forEach(b => b.items.forEach(it => { const u = it.unit || 'konu'; t[u] = t[u] || [0, 0]; t[u][0] += it.done; t[u][1] += it.total; }));
+  return Object.entries(t).map(([u, [a, b]]) => `${a}/${b} ${UNIT_LABEL[u] || u}`).join(' · ');
+}
+function viewBooks(root) {
+  const page = el('div', { class: 'page' }); root.appendChild(page);
+  const subjects = visibleSubjects();
+  page.appendChild(el('h1', { class: 'ptitle', text: '📚 Kitaplarım' }));
+  let sel = state.ui.bookSubject;
+  if (sel !== 'all' && !subjects.some(s => s.id === sel)) sel = 'all';
+  // 1 kitap ekle
+  const f = ui.bookForm;
+  if (f.subjectId && !subjects.some(s => s.id === f.subjectId)) f.subjectId = '';
+  if (!f.subjectId && sel !== 'all') f.subjectId = sel;
+  const nameIn = el('input', { type: 'text', value: f.title, placeholder: 'Örn. Altın Kural Soru Bankası', maxlength: '100', 'aria-label': 'Kitabın adı' }); nameIn.addEventListener('input', () => { f.title = nameIn.value; });
+  const cntIn = el('input', { type: 'number', min: '1', max: '9999', inputmode: 'numeric', value: f.count, placeholder: 'İstersen yaz', 'aria-label': 'Kaç test veya bölüm var' }); cntIn.addEventListener('input', () => { f.count = cntIn.value; });
+  const topicsTa = el('textarea', { placeholder: 'Üslü İfadeler | 12\nKareköklü İfadeler | 10\nGenel Tekrar', 'aria-label': 'Konular' }); topicsTa.value = f.topics; topicsTa.addEventListener('input', () => { f.topics = topicsTa.value; });
+  const topicsBox = el('div', { class: f.showTopics ? '' : 'hidden' }, [el('p', { class: 'small muted', text: 'Her satıra bir konu yaz. İstersen yanına | ve test sayısını ekle.' }), topicsTa]);
+  const addBtn = el('button', { type: 'button', class: 'btn primary addtask', text: 'Kitabı ekle', onClick: () => {
+    const sid = f.subjectId; if (!sid) { showToast('Önce dersi seç 👆', 'error'); return; }
+    const title = f.title.trim(); if (!title) { showToast('Kitabın adını yaz ✏️', 'error'); nameIn.focus(); return; }
+    const st = subjectState(sid); const lsx = st?.lgsSubjectId ? lgsSubject(st.lgsSubjectId) : null;
+    let items = f.topics.trim() ? parseBulk(f.topics, lsx ? lsx.topics : []) : [];
+    if (!items.length) { const n = Math.min(9999, parseInt(f.count, 10) || 0); items = [n >= 1 ? { id: uid(), title: 'Testler', lgsTopicId: null, unit: 'test', total: n, done: 0, completedAt: null } : { id: uid(), title: 'Kitap', lgsTopicId: null, unit: 'konu', total: 1, done: 0, completedAt: null }]; }
+    state.books.push({ id: uid(), subjectId: sid, title, publisher: '', kind: 'karma', createdAt: new Date().toISOString(), archived: false, items });
+    state.ui.bookSubject = sid; f.title = ''; f.count = ''; f.topics = '';
+    changed(); showToast(`📚 Kitap ${subjShort(sid)} dersine eklendi`, 'success');
+  } });
+  page.appendChild(el('section', { class: 'card addbook' }, [
+    el('h2', { text: '➕ Kitap ekle' }),
+    el('div', { class: 'flabel', text: 'Hangi ders?' }), chipStrip(subjectOptions(subjects), f.subjectId, id => { f.subjectId = id; }, 'big'),
+    el('div', { class: 'flabel', text: 'Kitabın adı' }), nameIn,
+    el('div', { class: 'flabel', text: 'Kaç test / bölüm var?' }), cntIn,
+    el('button', { type: 'button', class: 'linkbtn', text: 'Konuları da yazmak ister misin?', onClick: () => { f.showTopics = !f.showTopics; topicsBox.classList.toggle('hidden', !f.showTopics); } }), topicsBox, addBtn]));
+  // 2 ders seçici
+  page.appendChild(el('div', { class: 'flabel', style: 'margin-top:18px', text: 'Hangi dersin kitapları?' }));
+  page.appendChild(chipStrip(subjectOptions(subjects, [{ id: 'all', label: 'Hepsi', emoji: '📚' }]), sel, id => { state.ui.bookSubject = id; if (id !== 'all') ui.bookForm.subjectId = id; changed(); }, 'big'));
+  // 3 özet
+  const books = sel === 'all' ? state.books : state.books.filter(b => b.subjectId === sel);
+  const live = books.filter(b => !b.archived);
+  const sp = sel === 'all' ? totalProgress() : subjectProgress(sel);
+  const pieHost = el('div');
+  const col = sel === 'all' ? 'var(--ok)' : subjectColor(sel);
+  renderPie(pieHost, [{ label: 'Biten', value: sp.sum, color: col }, { label: 'Kalan', value: Math.max(0, sp.items - sp.sum), color: 'var(--muted-fill)' }], { center: sp.items ? fmtPct(sp.frac) : '—' });
+  page.appendChild(el('section', { class: 'card summary' }, [pieHost, el('div', { class: 'grow' }, [el('div', { class: 'sumtitle', text: sel === 'all' ? 'Tüm dersler' : `${subjEmoji(sel)} ${subjShort(sel)}` }), el('div', { text: `${live.length} kitap${unitTally(live) ? ' · ' + unitTally(live) : ''}` })])]));
+  // 4/5 kitap kartları
+  if (!books.length) page.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '📚' }), el('p', { text: 'Henüz kitap yok. Yukarıdan ilk kitabını ekle 👆' })]));
+  const groups = sel === 'all' ? [...state.subjects.slice().sort((a, b) => a.order - b.order).map(s => ({ id: s.id, list: books.filter(b => b.subjectId === s.id) })), { id: '__other', list: books.filter(b => !subjectState(b.subjectId)) }] : [{ id: sel, list: books }];
+  groups.forEach(g => {
+    if (!g.list.length) return;
+    if (sel === 'all') page.appendChild(el('h3', { class: 'grouphead', text: g.id === '__other' ? '📘 Diğer' : `${subjEmoji(g.id)} ${subjShort(g.id)}` }));
+    g.list.slice().sort((a, b) => (!!a.archived - !!b.archived) || String(a.createdAt).localeCompare(String(b.createdAt))).forEach(b => page.appendChild(bookCard(b)));
+  });
+}
+function bookCard(b) {
+  const bp = bookProgress(b); const st = subjectState(b.subjectId);
+  const c = el('div', { class: 'bookcard' + (b.archived ? ' arch' : ''), style: `--sc:${st?.color || 'var(--muted)'}` }, [
+    el('span', { class: 'temoji', text: subjEmoji(b.subjectId) }),
+    el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: b.title }), el('div', { class: 'bbar' }, [el('div', { class: 'grow' }, progBar(bp.frac, st?.color)), el('b', { class: 'pct', text: fmtPct(bp.frac) })]), b.archived ? el('div', { class: 'tsub', text: 'arşivde' }) : null])]);
+  return makeTappable(c, () => bookSheet(b));
+}
+function itemRow(b, it, redraw) {
+  const row = el('div', { class: 'irow' });
+  if (it.total === 1) {
+    const on = it.done >= 1;
+    row.appendChild(el('div', { class: 'ititle' + (on ? ' dn' : ''), text: it.title }));
+    row.appendChild(el('button', { type: 'button', class: 'check' + (on ? ' on' : ''), role: 'checkbox', 'aria-checked': String(on), 'aria-label': it.title, text: on ? '✓' : '', onClick: () => setItemDone(b, it, on ? 0 : 1, redraw) }));
+    return row;
+  }
+  row.appendChild(el('div', { class: 'ititle', text: it.title }));
+  const cnt = el('div', { class: 'counter' });
+  const label = el('span', { class: 'cnt', title: 'Sayı girmek için dokun', text: `${it.done}/${it.total} ${UNIT_LABEL[it.unit] || ''}`, onClick: () => {
+    const inp = el('input', { type: 'number', min: '0', max: String(it.total), value: String(it.done), inputmode: 'numeric' });
+    let fin = false; const commit = () => { if (fin) return; fin = true; setItemDone(b, it, inp.value, redraw); };
+    inp.addEventListener('blur', commit); inp.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
+    cnt.replaceChild(inp, label); inp.focus(); inp.select();
+  } });
+  cnt.append(el('button', { type: 'button', class: 'btn step', 'aria-label': 'Azalt', text: '−', onClick: () => setItemDone(b, it, it.done - 1, redraw) }), label,
+    el('button', { type: 'button', class: 'btn step', 'aria-label': 'Artır', text: '+', onClick: () => setItemDone(b, it, it.done + 1, redraw) }));
+  row.appendChild(cnt);
+  row.appendChild(el('div', { style: 'flex:1 1 100%' }, progBar(itemFraction(it), null, 'mini')));
+  return row;
+}
+function bookSheet(b) {
+  const body = el('div', { class: 'stack' });
+  const draw = () => {
+    body.replaceChildren();
+    const bp = bookProgress(b); const st = subjectState(b.subjectId);
+    body.appendChild(el('div', { class: 'row' }, [el('div', { class: 'grow' }, progBar(bp.frac, st?.color)), el('b', { text: fmtPct(bp.frac) })]));
+    if (!b.items.length) body.appendChild(el('p', { class: 'muted', text: 'Bu kitapta henüz bölüm yok. "Kitabı düzenle" ile ekleyebilirsin.' }));
+    b.items.forEach(it => body.appendChild(itemRow(b, it, draw)));
+  };
+  draw();
+  openModal({ title: `${subjEmoji(b.subjectId)} ${b.title}`, sheet: true, body, buttons: [
+    { label: 'Kitabı sil', cls: 'danger', onClick: async () => { if (!(await confirmDialog(`"${b.title}" silinecek. Bu işlem geri alınamaz.`, 'Sil', true))) return false; state.books = state.books.filter(x => x.id !== b.id); changed(); } },
+    { label: 'Kitabı düzenle', onClick: () => { setTimeout(() => bookEditModal(b), 0); } },
+    { label: 'Kapat', cls: 'primary' }] });
+}
+
+function parseBulk(text, topics) {
+  const out = [];
+  String(text || '').split(/\r?\n/).forEach(line => {
+    if (!line.trim()) return;
+    const parts = line.split('|').map(x => x.trim());
+    const title = parts[0]; if (!title) return;
+    let total = 1, unit = 'konu';
+    if (parts[1]) { const n = parseInt(parts[1], 10); if (n >= 1) { total = n; unit = 'test'; } }
+    if (parts[2] && UNIT_LABEL[trLower(parts[2])]) unit = trLower(parts[2]);
+    const nt = normalizeTr(title);
+    const tp = topics.find(t => normalizeTr(t.name) === nt) || topics.find(t => nt.includes(normalizeTr(t.name)));
+    out.push({ id: uid(), title, lgsTopicId: tp ? tp.id : null, unit, total, done: 0, completedAt: null });
+  });
+  return out;
+}
+function addTopicToWeek(topicId, subjectStateId, topicName) {
+  const ws = weekStartKey(new Date()); const plan = ensurePlan(ws);
+  const budgets = dayBudgets(), tot = dayTotals(plan);
+  let best = 0, bestRem = -Infinity;
+  for (let d = 0; d < 7; d++) { const rem = budgets[d] - tot[d]; if (rem > bestRem) { bestRem = rem; best = d; } }
+  const li = linkedItems(topicId).find(x => !itemComplete(x.item));
+  plan.sessions.push({ id: uid(), day: best, start: '', durationMin: 40, subjectId: subjectStateId, lgsTopicId: topicId, bookId: li?.book.id || null, itemId: li?.item.id || null, title: topicName + (li ? ' — ' + li.book.title : ''), done: false, order: nextOrder(plan) });
+  changed(); showToast(`Bu haftanın programına eklendi (${DAY_NAMES[best]})`, 'success');
+}
+function applyLgsData(data, source) {
+  state.lgsDataMeta = { source, appliedAt: new Date().toISOString(), previous: clone(activeData()) };
+  const d = clone(data); d.dataSource = source; state.lgsDataOverride = d;
+  d.subjects.forEach(ls => { if (!state.subjects.some(s => s.lgsSubjectId === ls.id)) state.subjects.push({ id: ls.id, name: ls.name, color: ls.color, lgsSubjectId: ls.id, visible: true, order: state.subjects.length }); });
+  saveState(); rerender(true);
+}
+function revertLgs() {
+  const prev = state.lgsDataMeta.previous; if (!prev) return;
+  const cur = clone(activeData());
+  state.lgsDataOverride = prev.dataSource === 'embedded' ? null : prev;
+  state.lgsDataMeta = { source: prev.dataSource === 'embedded' ? 'embedded' : (prev.dataSource || 'file'), appliedAt: new Date().toISOString(), previous: cur };
+  saveState(); rerender(true); showToast('Önceki veriye dönüldü', 'success');
+}
+function resetToEmbedded() {
+  if (!state.lgsDataOverride) return;
+  state.lgsDataMeta = { source: 'embedded', appliedAt: new Date().toISOString(), previous: clone(state.lgsDataOverride) };
+  state.lgsDataOverride = null; saveState(); rerender(true); showToast('Gömülü veriye dönüldü', 'success');
+}
+function dataUpdateModal() {
+  const body = el('div', { class: 'stack' });
+  const m = openModal({ title: 'Veriyi güncelle', wide: true, body, buttons: [{ label: 'Kapat' }] });
+  const errList = errs => body.insertBefore(el('div', { class: 'errrow' }, errs.map(e => el('div', { text: e }))), body.firstChild);
+  const handle = (obj, source, extra = {}) => {
+    const v = validateLgsData(obj);
+    if (!v.ok) { showChoices(); errList(['Geçersiz veri reddedildi:', ...v.errors]); return; }
+    showPreview({ data: v.data, warnings: v.warnings, source, changeSummary: extra.changeSummary });
+  };
+  function showChoices() {
+    body.replaceChildren();
+    const urlIn = el('input', { type: 'url', value: state.settings.dataUrl, placeholder: 'https://…/lgs-data.json' });
+    const fileIn = el('input', { type: 'file', accept: '.json,application/json' });
+    body.appendChild(card('(a) URL\'den al', [urlIn, el('p', { class: 'small muted', text: 'Adres CORS\'a izin veren bir JSON olmalı (örn. GitHub raw/Gist). Biçim: lgs-data.json ile aynı.' }),
+      btn('Getir', async () => {
+        const url = urlIn.value.trim(); if (!url) { showToast('Adres gir', 'error'); return; }
+        state.settings.dataUrl = url; saveState();
+        try { const res = await fetch(url, { cache: 'no-store' }); if (!res.ok) throw new Error('HTTP ' + res.status); handle(await res.json(), 'url'); }
+        catch (e) { showChoices(); errList([e instanceof SyntaxError ? 'Adres geçerli bir JSON döndürmedi.' : 'Adres alınamadı (ağ hatası veya CORS izni yok): ' + e.message]); }
+      }, 'sm primary')]));
+    const aiB = btn('Yapay zekâ ile yenile', e => runAi(e.currentTarget, async () => { const cand = await aiRefreshData(); showPreview(cand); }), 'sm primary ai-btn', { disabled: !hasKey() });
+    body.appendChild(card('(b) Yapay zekâ ile yenile', [el('p', { class: 'small muted', text: 'Web aramalı istek birkaç kuruş–birkaç lira tutabilir.' + (hasKey() ? '' : " Ayarlar'dan API anahtarı ekleyince açılır.") }), aiB]));
+    fileIn.addEventListener('change', async () => { const f = fileIn.files[0]; if (!f) return; try { handle(JSON.parse(await readFileAsText(f)), 'file'); } catch (e) { showChoices(); errList(['Dosya geçerli bir JSON değil: ' + e.message]); } });
+    body.appendChild(card('(c) Dosyadan yükle', [fileIn]));
+  }
+  function showPreview(cand) {
+    body.replaceChildren();
+    const cur = activeData(), d = cand.data, diff = diffLgsData(cur, d);
+    const known = new Set(d.subjects.flatMap(s => s.topics.map(t => t.id)));
+    const lost = state.books.reduce((a, b) => a + b.items.filter(it => it.lgsTopicId && !known.has(it.lgsTopicId)).length, 0);
+    body.appendChild(el('p', { text: `Kaynak: ${{ url: 'URL', ai: 'Yapay zekâ', file: 'Dosya' }[cand.source]} · Son güncelleme: ${fmtDate(cur.lastUpdated)} → ${fmtDate(d.lastUpdated)}` }));
+    body.appendChild(el('p', { text: diff.examDate ? `Sınav tarihi: ${diff.examDate[0]} → ${diff.examDate[1]}` : 'Sınav tarihi değişmedi.' }));
+    if (diff.addedYears.length) body.appendChild(el('p', { text: 'Eklenen yıllar: ' + diff.addedYears.join(', ') }));
+    if (cand.changeSummary) body.appendChild(el('div', null, [el('b', { text: 'Değişiklik özeti' }), el('pre', { class: 'raw', text: cand.changeSummary })]));
+    body.appendChild(el('p', { class: 'small', text: `${diff.changes.length} konu sayısı değişti · ${diff.newSources} yeni kaynak` }));
+    if (diff.changes.length) body.appendChild(el('div', { class: 'tablewrap', style: 'max-height:260px;overflow:auto' }, el('table', null, [el('thead', null, el('tr', null, ['Ders', 'Konu', 'Yıl', 'Eski → Yeni'].map(h => el('th', { text: h })))), el('tbody', null, diff.changes.slice(0, 200).map(c => el('tr', null, [el('td', { text: c.subject }), el('td', { text: c.topic }), el('td', { text: c.year }), el('td', { text: `${c.from ?? '—'} → ${c.to ?? '—'}` })])))])));
+    if (cand.warnings?.length) body.appendChild(el('div', { class: 'banner' }, [el('b', { text: 'Doğrulama uyarıları' }), ...cand.warnings.slice(0, 15).map(w => el('div', { class: 'small', text: w }))]));
+    if (lost) body.appendChild(el('div', { class: 'banner', text: `${lost} bölümün konu bağlantısı yeni veride bulunamadı (bağlantılar silinmez).` }));
+    body.appendChild(el('div', { class: 'row wrapflex' }, [btn('Uygula', () => { applyLgsData(d, cand.source); m.close(); showToast('LGS verisi güncellendi', 'success'); }, 'primary'), btn('Vazgeç', showChoices)]));
+  }
+  showChoices();
+}
+function aiWeekModal(ws) {
+  const ta = el('textarea', { placeholder: "Örn. Çarşamba kursu var, 18:00'den sonra" });
+  const m = openModal({ title: 'AI ile haftalık öneri', body: el('div', { class: 'stack' }, [el('label', { class: 'f' }, ['Ek istek (opsiyonel)', ta]), el('p', { class: 'small muted', text: 'AI istekleri ücretlidir. Sonuç önce önizlenir, onaylamadan kaydedilmez.' })]), buttons: [{ label: 'Vazgeç' }, { label: 'Gönder', cls: 'primary ai-btn', onClick: be => {
+    const note = ta.value.trim(); m.close();
+    runAi(be, async () => { const r = await aiSuggestWeek(ws, note); ui.programWeek = ws; ui.preview = { weekStart: ws, plan: r.plan, title: 'AI önerisi', summary: r.summary, tips: r.tips, dropped: r.dropped }; if (!r.plan.sessions.length) showToast('AI geçerli görev üretemedi.', 'error'); rerender(true); });
+    return false;
+  } }] });
+}
+function pasteModal(ws) {
+  let parsed = null, parsedWeeks = null; let mode = 'json'; let mdl = null; const setApply = t => { if (mdl) mdl.buttons[mdl.buttons.length - 1].textContent = t; };
+  const body = el('div', { class: 'stack' }); const area = el('div'); const prev = el('div');
+  const modes = [['json', 'Dosyadan'], ['text', 'Metin']]; if (hasKey()) modes.push(['ai', 'AI ile dönüştür']);
+  const chips = el('div', { class: 'chips' });
+  const jsonTa = el('textarea', { placeholder: '{ "sessions": [ { "day": 0, "start": "17:00", "durationMin": 40, "subject": "Matematik", "title": "Üslü İfadeler" } ] }' });
+  const fileIn = el('input', { type: 'file', accept: '.json,application/json' });
+  const textTa = el('textarea', { placeholder: 'Pzt 17:00 40 Matematik - Üslü İfadeler 2 test\nSalı 60 Fen - DNA tekrar' });
+  const aiTa = el('textarea', { placeholder: 'Öğretmenin verdiği programı buraya yapıştır…' });
+  function showPrev(r) {
+    parsed = r.sessions; prev.replaceChildren(); setApply('Programı yükle');
+    prev.appendChild(el('b', { text: `${r.sessions.length} görev${r.errors.length ? `, ${r.errors.length} hatalı satır` : ''}` }));
+    if (r.summary) prev.appendChild(el('p', { class: 'small muted', text: r.summary }));
+    [...r.sessions].sort((a, b) => a.day - b.day).forEach(s => prev.appendChild(el('div', { class: 'small', text: `${DAY_SHORT[s.day]} ${s.start ? s.start + ' · ' : ''}${s.durationMin} dk · ${subjectName(s.subjectId)} — ${s.title}` })));
+    r.errors.forEach(e => prev.appendChild(el('div', { class: 'errrow small', text: `Satır ${e.line}: ${e.msg} — ${e.text}` })));
+  }
+  function parseJsonText(txt) {
+    let obj; try { obj = JSON.parse(txt); } catch (e) { try { obj = parseJsonLoose(txt); } catch (e2) { prev.replaceChildren(el('div', { class: 'errrow', text: 'Bu dosya okunamadı. Doğru program dosyasını seçtin mi?' })); parsed = null; return; } }
+    parsedWeeks = null;
+    if (Array.isArray(obj?.weeks)) {
+      const wk = [], errs = [];
+      obj.weeks.forEach((w, i) => {
+        const k = typeof w?.weekStart === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(w.weekStart) ? weekStartKey(parseKey(w.weekStart)) : null;
+        if (!k) { errs.push({ line: i + 1, text: String(w?.label || ''), msg: 'Hafta tarihi okunamadı' }); return; }
+        const n = normalizePlanSessions(w.sessions); if (obj.placeholderTimes === true) n.sessions.forEach(s => { s.start = ''; });
+        n.errors.forEach(e => errs.push({ line: i + 1, text: `${w.label || k}: ${e.text}`, msg: e.msg }));
+        wk.push({ weekStart: k, label: String(w.label || ''), note: typeof w.note === 'string' ? w.note.slice(0, 300) : '', sessions: n.sessions });
+      });
+      parsedWeeks = wk; parsed = wk.length ? wk[0].sessions : null; prev.replaceChildren(); setApply(wk.length ? wk.length + ' haftayı yükle' : 'Programı yükle');
+      prev.appendChild(el('b', { text: `${wk.length} hafta, ${wk.reduce((a, w) => a + w.sessions.length, 0)} görev${errs.length ? `, ${errs.length} hatalı` : ''}` }));
+      prev.appendChild(el('p', { class: 'small muted', text: 'Çok haftalı program: her hafta kendi tarihine yerleştirilir.' }));
+      wk.forEach(w => prev.appendChild(el('div', { class: 'small', text: `${fmtDate(w.weekStart, { day: 'numeric', month: 'long' })}${w.label ? ' · ' + w.label : ''} — ${w.sessions.length} görev${state.plans[w.weekStart]?.sessions.length ? ' (mevcut programın üzerine yazılır)' : ''}` })));
+      errs.slice(0, 30).forEach(e => prev.appendChild(el('div', { class: 'errrow small', text: `Hafta ${e.line}: ${e.msg} — ${e.text}` })));
+      return;
+    }
+    const arr = Array.isArray(obj) ? obj : obj?.sessions;
+    if (!Array.isArray(arr)) { prev.replaceChildren(el('div', { class: 'errrow', text: 'Bu dosyada program bulunamadı.' })); parsed = null; return; }
+    const n = normalizePlanSessions(arr); showPrev({ sessions: n.sessions, errors: n.errors });
+  }
+  fileIn.addEventListener('change', async () => { const f = fileIn.files[0]; if (f) { const t = await readFileAsText(f); jsonTa.value = t; parseJsonText(t); } });
+  function draw() {
+    chips.replaceChildren(...modes.map(([id, nm]) => el('button', { type: 'button', class: 'chip' + (mode === id ? ' on' : ''), text: nm, onClick: () => { mode = id; parsed = null; prev.replaceChildren(); draw(); } })));
+    area.replaceChildren();
+    if (mode === 'json') area.appendChild(el('div', { class: 'stack' }, [el('p', { class: 'small muted', text: 'Program dosyasını seç.' }), fileIn, el('details', { class: 'det' }, [el('summary', { text: 'Metin yapıştır (ileri düzey)' }), jsonTa, btn('Önizle', () => parseJsonText(jsonTa.value), 'sm primary')])]));
+    else if (mode === 'text') area.appendChild(el('div', { class: 'stack' }, [el('p', { class: 'small muted', text: 'Biçim: Gün [Saat] Süre Ders - Açıklama' }), textTa, btn('Önizle', () => { const r = parsePlanText(textTa.value); showPrev(r); }, 'sm primary')]));
+    else area.appendChild(el('div', { class: 'stack' }, [aiTa, btn('AI ile dönüştür', e => runAi(e.currentTarget, async () => showPrev(await aiConvertText(aiTa.value))), 'sm primary ai-btn')]));
+  }
+  body.append(chips, area, prev); draw();
+  mdl = openModal({ title: 'Program yükle', wide: true, body, buttons: [{ label: 'Vazgeç' }, { label: 'Programı yükle', cls: 'primary', onClick: async () => {
+    if (parsedWeeks && mode === 'json') {
+      if (!parsedWeeks.length) { showToast('Geçerli hafta yok.', 'error'); return false; }
+      const over = parsedWeeks.filter(w => state.plans[w.weekStart]?.sessions.length).length;
+      if (over && !(await confirmDialog(`${over} haftanın mevcut programının üzerine yazılacak. Devam?`))) return false;
+      parsedWeeks.forEach(w => applyPlan(w.weekStart, 'import', w.sessions, w.note));
+      ui.preview = null; ui.programWeek = parsedWeeks.some(w => w.weekStart === weekStartKey(new Date())) ? weekStartKey(new Date()) : parsedWeeks[0].weekStart; ui.selDay = ui.programWeek === weekStartKey(new Date()) ? todayIdx() : 0;
+      changed(); showToast(`${parsedWeeks.length} haftalık program yüklendi`, 'success'); return;
+    }
+    if (!parsed || !parsed.length) { showToast('Önce geçerli bir önizleme oluştur.', 'error'); return false; }
+    if (state.plans[ws]?.sessions.length && !(await confirmDialog('Bu haftanın mevcut programının üzerine yazılacak. Devam?'))) return false;
+    applyPlan(ws, 'import', parsed, ''); ui.preview = null; changed(); showToast('Program uygulandı', 'success');
+  } }] });
+}
+
+/* ---- kitabı düzenle ---- */
+function bookEditModal(book) {
+  const draft = { title: book.title, subjectId: book.subjectId, archived: !!book.archived, items: clone(book.items) };
+  const subjects = visibleSubjects(); if (!subjects.some(s => s.id === draft.subjectId) && subjectState(draft.subjectId)) subjects.push(subjectState(draft.subjectId));
+  const body = el('div', { class: 'stack' });
+  const titleIn = el('input', { type: 'text', value: draft.title, maxlength: '100', 'aria-label': 'Kitabın adı' }); titleIn.addEventListener('input', () => { draft.title = titleIn.value; });
+  const rowsBox = el('div'), errBox = el('div', { class: 'err' });
+  function renderRows() {
+    rowsBox.replaceChildren();
+    draft.items.forEach((it, i) => {
+      const ti = el('input', { type: 'text', class: 'w-full', value: it.title, placeholder: 'Bölüm adı', 'aria-label': 'Bölüm adı' }); ti.addEventListener('input', () => { it.title = ti.value; });
+      const un = el('select', { class: 'w-s', value: it.unit, 'aria-label': 'Birim' }, ['test', 'sayfa', 'konu'].map(u => el('option', { value: u, text: u }))); un.addEventListener('change', () => { it.unit = un.value; });
+      const dn = el('input', { type: 'number', class: 'w-n', min: '0', value: String(it.done), 'aria-label': 'Yaptığım', placeholder: 'Yaptığım', title: 'Yaptığım' }); dn.addEventListener('input', () => { it.done = parseInt(dn.value, 10); });
+      const tt = el('input', { type: 'number', class: 'w-n', min: '1', value: String(it.total), 'aria-label': 'Toplam', placeholder: 'Toplam', title: 'Toplam' }); tt.addEventListener('input', () => { it.total = parseInt(tt.value, 10); });
+      rowsBox.appendChild(el('div', { class: 'rowedit' }, [ti, un, dn, el('span', { text: '/' }), tt, el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Bölümü sil', text: '🗑', onClick: () => { draft.items.splice(i, 1); renderRows(); } })]));
+    });
+    if (!draft.items.length) rowsBox.appendChild(el('p', { class: 'muted small', text: 'Henüz bölüm yok.' }));
+  }
+  const bulkTa = el('textarea', { placeholder: 'Üslü İfadeler | 12\nKareköklü İfadeler | 10\nGenel Tekrar' });
+  const topicsFor = sid => { const st = subjectState(sid); const ls = st?.lgsSubjectId ? lgsSubject(st.lgsSubjectId) : null; return ls ? ls.topics : []; };
+  const archCb = el('input', { type: 'checkbox', checked: draft.archived, style: 'width:26px;height:26px' }); archCb.addEventListener('change', () => { draft.archived = archCb.checked; });
+  body.append(el('div', { class: 'flabel', text: 'Kitabın adı' }), titleIn, el('div', { class: 'flabel', text: 'Hangi ders?' }), chipStrip(subjectOptions(subjects), draft.subjectId, id => { draft.subjectId = id; }),
+    el('div', { class: 'flabel', text: 'Bölümler' }), el('p', { class: 'small muted', text: 'Her satır: bölüm adı, birim, Yaptığım / Toplam' }), rowsBox, btn('➕ Bölüm ekle', () => { draft.items.push({ id: uid(), title: '', lgsTopicId: null, unit: 'test', total: 1, done: 0, completedAt: null }); renderRows(); }, 'sm'),
+    el('details', { class: 'det' }, [el('summary', { text: 'Birden çok konuyu birden ekle' }), el('div', { class: 'stack' }, [el('p', { class: 'small muted', text: 'Her satıra bir konu. İstersen yanına | ve test sayısı.' }), bulkTa,
+      btn('Satırları ekle', () => { const its = parseBulk(bulkTa.value, topicsFor(draft.subjectId)); draft.items.push(...its); bulkTa.value = ''; renderRows(); showToast(`${its.length} bölüm eklendi`, 'success'); }, 'sm primary')])]),
+    el('label', { class: 'row', style: 'margin-top:8px' }, [archCb, 'Rafa kaldır (artık kullanmıyorum)']), errBox);
+  renderRows();
+  openModal({ title: 'Kitabı düzenle', sheet: true, body, buttons: [{ label: 'Vazgeç' }, { label: 'Kaydet', cls: 'primary lg', onClick: () => {
+    const errs = [];
+    if (!draft.title.trim()) errs.push('Kitabın adı boş olamaz.');
+    draft.items.forEach((it, i) => {
+      if (!String(it.title).trim()) errs.push(`Bölüm ${i + 1}: ad boş olamaz.`);
+      if (!Number.isInteger(it.total) || it.total < 1) errs.push(`Bölüm ${i + 1}: toplam en az 1 olmalı.`);
+      if (!Number.isInteger(it.done) || it.done < 0 || it.done > it.total) errs.push(`Bölüm ${i + 1}: yapılan sayı 0 ile toplam arasında olmalı.`);
+    });
+    if (errs.length) { errBox.replaceChildren(...errs.map(e => el('div', { text: e }))); return false; }
+    const ok = new Set(topicsFor(draft.subjectId).map(t => t.id));
+    const items = draft.items.map(it => ({ id: it.id, title: it.title.trim(), lgsTopicId: it.lgsTopicId && ok.has(it.lgsTopicId) ? it.lgsTopicId : null, unit: it.unit, total: it.total, done: it.done, completedAt: it.done >= it.total ? (it.completedAt || new Date().toISOString()) : null }));
+    Object.assign(book, { title: draft.title.trim(), subjectId: draft.subjectId, archived: draft.archived, items });
+    changed();
+  } }] });
+}
+
+/* ---- LGS ---- */
+function viewLgs(root) {
+  const data = activeData(), years = selectedYears(), days = daysToExam();
+  const page = el('div', { class: 'page wide' }); root.appendChild(page);
+  page.appendChild(el('h1', { class: 'ptitle', text: '📊 LGS' }));
+  // üstte kısa genel durum
+  const top = el('div', { class: 'grid g3' }); page.appendChild(top);
+  const ne = data.exam.nextExam; const ed = examDateStr();
+  top.appendChild(card('⏳ Geri sayım', [
+    days == null ? el('p', { text: "Sınav tarihi girilmedi — Ayarlar'dan tarihi gir." }) : days < 0 ? el('p', { text: "Sınav tarihi geçti — Ayarlar'dan yeni tarihi gir." }) : el('div', { class: 'big', text: `${days} gün` }),
+    el('div', { text: `${state.profile.examDate ? 'LGS' : ne.name} · ${fmtLong(ed)}` })], 'accent'));
+  const tp = totalProgress(); const ringHost = el('div'); renderRing(ringHost, tp.frac, 'var(--ok)', fmtPct(tp.frac));
+  top.appendChild(card('📈 Toplam ilerleme', [ringHost, el('p', { class: 'small muted', style: 'text-align:center', text: `${tp.books} kitap · ${tp.items} bölüm` })]));
+  const cov = activeLgsSubjects().map(({ st, ls }) => ({ st, ls, c: subjectCoverage(ls, years) }));
+  const c5 = el('div', { class: 'stack' });
+  cov.sort((a, b) => a.c.frac - b.c.frac || b.ls.coefficient - a.ls.coefficient).slice(0, 3).forEach(({ st, ls, c }) => {
+    const tops = ls.topics.filter(t => topicStatus(t.id).status !== 'done').map(t => ({ t, sc: priorityScore(t, ls, years) })).sort((a, b) => b.sc - a.sc).slice(0, 2);
+    c5.appendChild(el('div', null, [el('div', { class: 'row wrapflex' }, [el('span', { class: 'badge', style: `background:${st.color};color:${inkOn(st.color)}`, text: `${subjEmoji(st.id)} ${subjShort(st.id)}` }), el('span', { class: 'small muted', text: `hazırsın ${fmtPct(c.frac)}` })]),
+      ...tops.map(x => el('div', { class: 'small', text: `${x.t.name} (ort. ${fmtNum(topicWeight(x.t, years))} soru) henüz bitmedi` }))]));
+  });
+  top.appendChild(card('🎯 En zayıf 3 ders', c5.children.length ? c5 : el('p', { class: 'muted', text: 'Veri yok.' })));
+  // analiz
+  const yearChips = el('div', { class: 'chips' }, data.years.map(y => el('button', { type: 'button', class: 'chip' + (years.includes(y) ? ' on' : ''), text: String(y), onClick: () => {
+    const cur = new Set(years); cur.has(y) ? cur.delete(y) : cur.add(y); if (!cur.size) return;
+    state.settings.analysisYears = [...cur].sort((a, b) => a - b); changed();
+  } })));
+  page.appendChild(el('div', { style: 'margin-top:14px' }, card('Hangi yılların sınavlarına bakalım?', yearChips)));
+  const lgsOpts = [{ id: 'all', label: 'Tümü', emoji: '📚' }, ...data.subjects.map(s => ({ id: s.id, label: SUBJ_SHORT[s.id] || s.shortName, emoji: SUBJ_EMOJI[s.id] || '📘', color: s.color }))];
+  const subChips = chipStrip(lgsOpts, ui.analysisSubject, id => { ui.analysisSubject = id; rerender(true); }, 'big');
+  const srcLabel = !state.lgsDataOverride ? 'gömülü' : { url: 'URL', ai: 'yapay zekâ', file: 'dosya' }[state.lgsDataMeta.source] || 'güncellenmiş';
+  const info = el('details', { class: 'card det' }, [el('summary', { text: 'ℹ Veri hakkında' }), el('div', { class: 'stack', style: 'margin-top:10px' }, [
+    el('p', { class: 'small', text: `Son güncelleme: ${fmtDate(data.lastUpdated)} · Kaynak: ${srcLabel}` }),
+    el('p', { class: 'small muted', text: data.disclaimer }), el('p', { class: 'small muted', text: data.curriculumNote }),
+    el('div', { class: 'no-print' }, btn('Veriyi güncelle', dataUpdateModal, 'sm primary')),
+    el('h3', { text: 'Kaynaklar', style: 'font-size:16px' }),
+    el('ul', null, data.sources.map(s => { const ok = /^https?:\/\//.test(s.url); return el('li', null, [ok ? el('a', { href: s.url, target: '_blank', rel: 'noopener', text: s.title }) : el('span', { text: s.title }), el('span', { class: 'small muted', text: ' — ' + (s.usedFor || '') })]); }))])]);
+    const g = el('div', { class: 'grid', style: 'margin-top:14px' }); page.appendChild(g);
+  // exam structure
+  const sc = data.exam.scoring;
+  const sessT = el('table', null, [el('thead', null, el('tr', null, ['Oturum', 'Soru', 'Süre'].map(h => el('th', { text: h })))), el('tbody', null, data.exam.sessions.map(s => el('tr', null, [el('td', { text: s.name }), el('td', { text: String(s.questionCount) }), el('td', { text: fmtMin(s.durationMin) })])))]);
+  const subT = el('table', null, [el('thead', null, el('tr', null, ['Ders', 'Soru', 'Katsayı'].map(h => el('th', { text: h })))), el('tbody', null, data.subjects.map(s => el('tr', null, [el('td', { text: s.name }), el('td', { text: String(s.questionCount) }), el('td', { text: String(s.coefficient) })])))]);
+  const qh = el('div', { class: 'chart-host' });
+  renderBar(qh, { labels: data.subjects.map(s => s.name), datasets: [{ label: 'Soru sayısı', colors: data.subjects.map(s => s.color), data: data.subjects.map(s => s.questionCount) }], height: 220 });
+  g.appendChild(card('Sınav yapısı', [el('div', { class: 'tablewrap' }, sessT), el('div', { class: 'tablewrap', style: 'margin-top:10px' }, subT), el('p', { class: 'small muted', text: `Toplam ${sc.totalQuestions} soru · ${sc.wrongPenalty}` }), qh]));
+  // average correct
+  const lh = el('div', { class: 'chart-host' });
+  renderLine(lh, { labels: data.years.map(String), datasets: data.subjects.map(s => ({ label: s.name, color: s.color, data: data.years.map(y => { const v = s.averageCorrect[y]; return typeof v === 'number' ? (ui.normalize ? +(v / s.questionCount * 100).toFixed(1) : v) : null; }) })) });
+  g.appendChild(card('Ortalama doğru sayıları', [el('div', { class: 'chips', style: 'margin-bottom:8px' }, el('button', { type: 'button', class: 'chip' + (ui.normalize ? ' on' : ''), text: 'Yüzde olarak göster', onClick: () => { ui.normalize = !ui.normalize; rerender(true); } })), lh]));
+  // topics
+  const sel = ui.analysisSubject;
+  const rows = [];
+  data.subjects.filter(s => sel === 'all' || s.id === sel).forEach(ls => ls.topics.forEach(t => {
+    const st = topicStatus(t.id); const avg = topicWeight(t, years); const hw = isHighWeight(t, ls, years);
+    rows.push({ ls, t, st, avg, hw, score: priorityScore(t, ls, years), open: st.status !== 'done' });
+  }));
+  const ord = { notStarted: 0, inProgress: 1, done: 2 };
+  const { key, dir } = ui.analysisSort;
+  rows.sort((a, b) => { let r;
+    if (key === 'name') r = a.t.name.localeCompare(b.t.name, 'tr');
+    else if (key === 'status') r = ord[a.st.status] - ord[b.st.status];
+    else if (key === 'priority') r = a.score - b.score;
+    else if (key.startsWith('y')) { const y = key.slice(1); r = (a.t.counts[y] ?? -1) - (b.t.counts[y] ?? -1); }
+    else r = a.avg - b.avg;
+    return r * dir || a.t.name.localeCompare(b.t.name, 'tr'); });
+  const scope = {}; data.exam.pastExams.forEach(p => scope[p.year] = p.scope);
+  const th = (label, k, cls = '') => el('th', { class: 'sortable ' + cls, text: label + (key === k ? (dir > 0 ? ' ▲' : ' ▼') : ''), onClick: () => { ui.analysisSort = { key: k, dir: key === k ? -dir : -1 }; rerender(true); } });
+  const tbl = el('table', null, [el('thead', null, el('tr', null, [sel === 'all' ? el('th', { text: 'Ders' }) : null, th('Konu', 'name'), ...years.map(y => th(String(y), 'y' + y, 'num')), th('Ort.', 'avg', 'num'), th('Durum', 'status'), th('Önem', 'priority', 'num')])),
+    el('tbody', null, rows.map(r => el('tr', { class: r.hw && r.open ? 'prio' : '' }, [
+      sel === 'all' ? el('td', { class: 'small', text: lgsShort(r.ls) }) : null,
+      el('td', null, [r.t.name, ' ', r.hw && r.open ? el('span', { class: 'badge pri', text: 'Öncelikli' }) : null, r.hw && !r.open ? el('span', { class: 'star', text: '★' }) : null]),
+      ...years.map(y => {
+        if (scope[y] === 'firstSemesterOnly' && r.t.semester === 2) return el('td', { class: 'num', title: 'Bu yıl kapsam dışıydı', text: '—' });
+        const c = r.t.counts[y]; if (typeof c !== 'number') return el('td', { class: 'num', text: '—' });
+        return r.t.estimatedYears.includes(y) ? el('td', { class: 'num est', title: 'Tahmini değer', text: '~' + c }) : el('td', { class: 'num', text: String(c) });
+      }),
+      el('td', { class: 'num', text: fmtNum(r.avg) }), el('td', null, statusBadge(r.st, e => popMenu(e.currentTarget, topicMenuItems(r.t.id)))), el('td', { class: 'num', text: r.open ? fmtNum(r.score) : '—' })])))]);
+  // chart
+  const chartRows = [...rows].sort((a, b) => b.avg - a.avg).slice(0, sel === 'all' ? 25 : 99);
+  const ch = el('div', { class: 'chart-host' });
+  const faded = c => /^#[0-9a-f]{6}$/i.test(c) ? c + '99' : c;
+  if (!ui.analysisByYear) renderBar(ch, { labels: chartRows.map(r => r.t.name), datasets: [{ label: 'Ortalama soru', data: chartRows.map(r => +r.avg.toFixed(2)), colors: chartRows.map(r => r.st.status === 'done' ? r.ls.color : r.st.status === 'inProgress' ? faded(r.ls.color) : cssVar('--muted-fill') || '#ccc') }] });
+  else renderBar(ch, { labels: chartRows.map(r => r.t.name), datasets: years.map((y, i) => ({ label: String(y), color: `hsl(${210 + i * 30} 65% ${55 - i * 3}%)`, data: chartRows.map(r => scope[y] === 'firstSemesterOnly' && r.t.semester === 2 ? null : (r.t.counts[y] ?? null)) })) });
+  g.appendChild(card('Konu bazlı soru dağılımı', [subChips, el('div', { class: 'tablewrap', style: 'margin-top:10px' }, tbl)], 'span2'));
+  g.appendChild(card('Grafik', [el('div', { class: 'chips', style: 'margin-bottom:8px' }, [el('button', { type: 'button', class: 'chip' + (ui.analysisByYear ? ' on' : ''), text: 'Yıllara göre', onClick: () => { ui.analysisByYear = !ui.analysisByYear; rerender(true); } }), el('span', { class: 'small muted', text: ui.analysisByYear ? '' : 'Renk: bitti = ders rengi, devam = soluk, başlanmadı = gri' })]), ch], 'span2'));
+  // priority list
+  const pri = [];
+  activeLgsSubjects().forEach(({ st, ls }) => ls.topics.forEach(t => { if (topicStatus(t.id).status !== 'done' && isHighWeight(t, ls, years)) pri.push({ st, ls, t, sc: priorityScore(t, ls, years) }); }));
+  pri.sort((a, b) => b.sc - a.sc);
+  g.appendChild(card('Çok soru çıkan, bitmemiş konular', pri.length ? el('div', { class: 'stack' }, pri.slice(0, 10).map(p => el('div', { class: 'row wrapflex', style: 'border-top:1px solid var(--border);padding-top:8px' }, [
+    el('span', { class: 'badge', style: `background:${p.st.color};color:${inkOn(p.st.color)}`, text: lgsShort(p.ls) }), el('div', { class: 'grow' }, [el('b', { text: p.t.name }), el('div', { class: 'small muted', text: `ort. ${fmtNum(topicWeight(p.t, years))} soru · tamamlanma ${fmtPct(topicCompletion(p.t.id))}` })]),
+    btn('Programa ekle', () => addTopicToWeek(p.t.id, p.st.id, p.t.name), 'sm no-print')]))) : el('p', { class: 'muted', text: 'Bitmemiş konu yok.' }), 'span2'));
+  page.appendChild(info);
+}
+
+/* ---- ayarlar ---- */
+let deferredInstall = null;
+const EMOJI_CHOICES = ['📘', '📖', '➗', '🔬', '🏛️', '🕌', '🔤', '🧪', '📐', '🎨', '🎵', '🌍', '💻', '⚽', '🧠', '✏️'];
+function viewSettings(root) {
+  const page = el('div', { class: 'page wide' }); root.appendChild(page);
+  page.appendChild(el('div', { class: 'row between', style: 'margin-bottom:10px' }, [el('h1', { class: 'ptitle', style: 'margin:0', text: '⚙ Ayarlar' }), btn('‹ Geri', () => navigate('#program'), 'sm')]));
+  const g = el('div', { class: 'grid' }); page.appendChild(g);
+  const lab = (t, n) => el('label', { class: 'f' }, [t, n]);
+  const p = state.profile, st = state.settings;
+  const nameIn = el('input', { type: 'text', value: p.studentName }); nameIn.addEventListener('change', () => { p.studentName = nameIn.value.trim(); changed(); });
+  const dateIn = el('input', { type: 'date', value: p.examDate || '' }); dateIn.addEventListener('change', () => { p.examDate = dateIn.value || null; changed(); });
+  const themeSel = el('select', { value: p.theme }, [['auto', 'Otomatik'], ['light', 'Açık'], ['dark', 'Koyu']].map(([v, t]) => el('option', { value: v, text: t })));
+  themeSel.addEventListener('change', () => { p.theme = themeSel.value; changed(); });
+  const dmIns = DAY_NAMES.map((n, i) => { const inp = el('input', { type: 'number', min: '0', max: '1000', value: String(p.dailyMinutes[i]) }); inp.addEventListener('change', () => { p.dailyMinutes[i] = Math.max(0, parseInt(inp.value, 10) || 0); saveState(); }); return [n, inp]; });
+  g.appendChild(card('Profil', [el('div', { class: 'stack' }, [lab('Adın', nameIn), lab('LGS tarihi (boş = veriden)', dateIn), btn('Veriden sıfırla', () => { p.examDate = null; changed(); }, 'sm'), lab('Tema', themeSel),
+    el('h3', { text: 'Otomatik öneri için günlük çalışma süren (dk)', style: 'font-size:16px' }), el('div', { class: 'formgrid' }, dmIns.map(([n, i]) => lab(n, i))),
+    btn('Pazartesi değerini hafta içine uygula', () => { for (let i = 1; i < 5; i++) p.dailyMinutes[i] = p.dailyMinutes[0]; changed(); }, 'sm')])]));
+  // dersleri yönet
+  const rows = state.subjects.slice().sort((a, b) => a.order - b.order).map(s => {
+    const em = el('select', { value: subjEmoji(s.id), 'aria-label': 'Emoji', style: 'width:84px' }, (EMOJI_CHOICES.includes(subjEmoji(s.id)) ? EMOJI_CHOICES : [subjEmoji(s.id), ...EMOJI_CHOICES]).map(e => el('option', { value: e, text: e })));
+    em.addEventListener('change', () => { s.emoji = em.value; changed(); });
+    return el('div', { class: 'row subjrow' }, [em, el('span', { class: 'grow', text: s.name }),
+      btn(s.visible ? 'Gizle' : 'Göster', () => { s.visible = !s.visible; changed(); }, 'sm'),
+      s.lgsSubjectId ? null : btn('Sil', async () => { if (await confirmDialog(`"${s.name}" dersi ve tüm kitapları silinecek. Bu işlem geri alınamaz.`, 'Sil', true)) { state.books = state.books.filter(b => b.subjectId !== s.id); state.subjects = state.subjects.filter(x => x.id !== s.id); changed(); } }, 'sm danger')]);
+  });
+  const newName = el('input', { type: 'text', placeholder: 'Ders adı', maxlength: '40' }); const newCol = el('input', { type: 'color', value: '#7a5af8' });
+  const newEm = el('select', { 'aria-label': 'Emoji', style: 'width:84px' }, EMOJI_CHOICES.map(e => el('option', { value: e, text: e })));
+  g.appendChild(card('Dersleri yönet', el('div', { class: 'stack' }, [...rows, el('h3', { text: 'Özel ders ekle', style: 'font-size:16px;margin-top:8px' }),
+    el('div', { class: 'row wrapflex' }, [newEm, el('div', { class: 'grow' }, newName), newCol]),
+    btn('Dersi ekle', () => { const name = newName.value.trim(); if (!name) { showToast('Ders adı gerekli', 'error'); return; }
+      state.subjects.push({ id: uid(), name, shortName: name.slice(0, 12), emoji: newEm.value, color: newCol.value, lgsSubjectId: null, visible: true, order: Math.max(-1, ...state.subjects.map(x => x.order)) + 1 }); changed(); showToast('Ders eklendi', 'success'); }, 'sm primary')])));
+  // install
+  const inst = el('div', { class: 'stack' }, [
+    el('p', { class: 'small', text: 'Android (Chrome): menü → "Ana ekrana ekle" / "Uygulamayı yükle".' }),
+    el('p', { class: 'small', text: 'iPhone/iPad (Safari): Paylaş → "Ana Ekrana Ekle".' }),
+    el('p', { class: 'small muted', text: 'Yükleme için uygulamanın https:// adresinden açılması gerekir (dosyadan açıldığında yalnızca tarayıcıda çalışır).' })]);
+  if (deferredInstall) inst.appendChild(btn('Uygulamayı yükle', async () => { const dp = deferredInstall; deferredInstall = null; dp.prompt(); try { await dp.userChoice; } catch (e) { /* yoksay */ } rerender(true); }, 'primary'));
+  g.appendChild(card('Telefona yükle', inst));
+  // ai
+  const keyIn = el('input', { type: 'password', value: st.apiKey, placeholder: 'sk-ant-…', autocomplete: 'off' }); keyIn.addEventListener('change', () => { st.apiKey = keyIn.value.trim(); saveState(); rerender(true); });
+  const modelIn = el('input', { type: 'text', value: st.model }); modelIn.addEventListener('change', () => { st.model = modelIn.value.trim() || DEFAULT_MODEL; saveState(); });
+  const webCb = el('input', { type: 'checkbox', checked: st.useWebSearch !== false, style: 'width:26px;height:26px' }); webCb.addEventListener('change', () => { st.useWebSearch = webCb.checked; saveState(); });
+  g.appendChild(card('Yapay zekâ', el('div', { class: 'stack' }, [
+    lab('API anahtarı', el('div', { class: 'row' }, [keyIn, btn('Göster', e => { const t = keyIn.type === 'password'; keyIn.type = t ? 'text' : 'password'; e.currentTarget.textContent = t ? 'Gizle' : 'Göster'; }, 'sm')])),
+    lab('Model', modelIn), el('label', { class: 'row' }, [webCb, 'Veri yenilemede web araması kullan']),
+    el('p', { class: 'small muted', text: 'Anahtar yalnızca bu tarayıcıda saklanır ve doğrudan Anthropic\'e gönderilir. Paylaşılan bilgisayarda kullanmayın. AI istekleri ücretlidir.' }),
+    el('div', { class: 'row wrapflex' }, [btn('Bağlantıyı test et', e => { st.apiKey = keyIn.value.trim(); saveState(); runAi(e.currentTarget, async () => { await aiTest(); showToast('Bağlantı başarılı', 'success'); }); }, 'sm ai-btn'),
+      btn('Anahtarı sil', () => { st.apiKey = ''; changed(); showToast('Anahtar silindi', 'success'); }, 'sm danger')]),
+    hasKey() ? null : el('p', { class: 'small muted', text: 'Yapay zekâ düğmeleri anahtar girilince açılır. Anahtarsız da uygulama tam çalışır.' })])));
+  // lgs data
+  const urlIn = el('input', { type: 'url', value: st.dataUrl, placeholder: 'https://…/lgs-data.json' }); urlIn.addEventListener('change', () => { st.dataUrl = urlIn.value.trim(); saveState(); });
+  const d = activeData();
+  g.appendChild(card('LGS verisi', el('div', { class: 'stack' }, [
+    el('p', { class: 'small', text: `Aktif kaynak: ${state.lgsDataOverride ? ({ url: 'URL', ai: 'yapay zekâ', file: 'dosya' }[state.lgsDataMeta.source] || 'güncellenmiş') : 'gömülü'} · Son güncelleme: ${fmtDate(d.lastUpdated)}` }),
+    lab('Veri URL\'si', urlIn),
+    el('div', { class: 'row wrapflex' }, [btn('Veriyi güncelle', dataUpdateModal, 'sm primary'), btn('Gömülü veriye dön', resetToEmbedded, 'sm', { disabled: !state.lgsDataOverride }), btn('Önceki veriye geri al', revertLgs, 'sm', { disabled: !state.lgsDataMeta.previous }), btn('Aktif veriyi indir', () => downloadJson('lgs-data.json', activeData()), 'sm')])])));
+  // backup
+  const fileIn = el('input', { type: 'file', accept: '.json,application/json' });
+  fileIn.addEventListener('change', async () => {
+    const f = fileIn.files[0]; if (!f) return;
+    try {
+      const obj = JSON.parse(await readFileAsText(f));
+      if (obj?.app !== 'lgs-takip' || !obj.state) throw new Error('Bu bir LGS Takip yedeği değil.');
+      if (!(await confirmDialog('Mevcut verilerin yerine geçecek. Devam?', 'Yükle', true))) { fileIn.value = ''; return; }
+      importBackup(obj); applyTheme(); ui.selDay = todayIdx(); ui.programWeek = weekStartKey(new Date()); location.hash = '#program'; rerender(false); showToast('Yedek yüklendi', 'success');
+    } catch (e) { showToast('Yedek yüklenemedi: ' + e.message, 'error'); fileIn.value = ''; }
+  });
+  g.appendChild(card('Yedek', el('div', { class: 'stack' }, [btn('Yedeği indir', downloadBackup, 'sm'), lab('Yedeği yükle', fileIn),
+    btn('Tüm verileri sil', async () => {
+      if (!(await confirmDialog('Tüm verilerin (kitaplar, programlar, ayarlar, API anahtarı) silinecek.', 'Devam', true))) return;
+      if (!(await confirmDialog('Emin misin? Bu işlem geri alınamaz. İstersen önce yedek indir.', 'Evet, hepsini sil', true))) return;
+      try { localStorage.removeItem(KEY); } catch (e) { /* yoksay */ }
+      state = migrateState(null); ui.preview = null; location.hash = '#program'; rerender(false); showToast('Tüm veriler silindi', 'success');
+    }, 'sm danger')])));
+}
+
+/* ============================ 10. init ============================ */
+function init() {
+  state = loadState();
+  applyTheme();
+  window.addEventListener('hashchange', () => rerender(false));
+  $('#btn-settings').addEventListener('click', () => navigate('#ayarlar'));
+  $('#ai-cancel').addEventListener('click', () => { aiRun.ctrl && aiRun.ctrl.abort(); });
+  window.addEventListener('storage', e => { if (e.key === KEY && e.newValue) { try { state = migrateState(JSON.parse(e.newValue)); rerender(true); } catch (err) { /* yoksay */ } } });
+  const flush = () => { try { saveState.flush(); } catch (e) { /* yoksay */ } };
+  window.addEventListener('beforeunload', flush); window.addEventListener('pagehide', flush);
+  let lastCur = weekStartKey(new Date());
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { flush(); return; }
+    const cur = weekStartKey(new Date());
+    if (cur !== lastCur) { if (ui.programWeek === lastCur) { ui.programWeek = cur; ui.selDay = todayIdx(); ui.preview = null; } lastCur = cur; rerender(true); }
+  });
+  if (!document.querySelector('link[rel=manifest]') && /^https?:$/.test(location.protocol)) document.head.appendChild(el('link', { rel: 'manifest', href: 'manifest.webmanifest' }));
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; if (parseRoute().name === 'ayarlar') rerender(true); });
+  window.addEventListener('appinstalled', () => { deferredInstall = null; showToast('Uygulama yüklendi', 'success'); });
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => rerender(true)); } catch (e) { /* yoksay */ }
+  rerender(false);
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+init();
+})();
+
+</script>
+</body>
+</html>
