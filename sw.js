@@ -1,6 +1,6 @@
 /* LGS Takip service worker.
    NOT: Her sürümde CACHE adını (lgs-takip-vN) artır; böylece eski önbellek silinir ve güncelleme gelir. */
-const CACHE = 'lgs-takip-v5';
+const CACHE = 'lgs-takip-v8';
 const CHART = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'icon.svg'];
 const SHELL_URLS = new Set(SHELL.map(p => new URL(p, self.location).href));
@@ -32,7 +32,7 @@ async function cacheFirst(req) {
 }
 self.addEventListener('fetch', e => {
   const req = e.request; const url = new URL(req.url);
-  if (req.method !== 'GET' || url.hostname === 'api.anthropic.com' || req.cache === 'no-store') return; // ağdan
+  if (req.method !== 'GET' || url.hostname === 'api.anthropic.com' || url.hostname === 'api.github.com' || req.cache === 'no-store') return; // ağdan
   const bare = url.origin + url.pathname;
   if (req.mode === 'navigate' || PAGE_URLS.has(bare)) { if (url.origin === self.location.origin) e.respondWith(networkFirst(req)); return; }
   if (SHELL_URLS.has(bare) || req.url === CHART) e.respondWith(cacheFirst(req));

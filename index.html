@@ -240,6 +240,31 @@ input[type=file]{padding:10px 12px;min-height:48px;width:100%;border:1px solid v
 .rowedit input.w-n{flex:0 0 104px}
 .modal-head h3{min-width:0;overflow-wrap:anywhere}
 
+.sync-ind{min-height:44px;min-width:44px;padding:0 8px;border:1px solid var(--border);border-radius:14px;background:var(--surface);cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap}
+.sync-ind[data-state=err]{color:var(--danger);border-color:var(--danger)}
+.readerstrip{background:var(--warn-bg);border-bottom:1px solid var(--warn);padding:6px calc(16px + var(--sar)) 6px calc(16px + var(--sal));font-size:14px;text-align:center;overflow-wrap:anywhere}
+.rolegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.rolebtn{min-height:72px;border:2px solid var(--border);border-radius:16px;background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px;text-align:center}
+.rolebtn.on{border-color:var(--accent);background:var(--accent);color:var(--accent-text)}
+.okmsg{color:var(--ok);font-weight:600}
+.vcard{margin-bottom:12px}
+.vbig{font-size:26px;font-weight:700;margin-bottom:8px;overflow-wrap:anywhere}
+.vtask{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);min-width:0}
+.vtask.isdone .ttitle{text-decoration:line-through;opacity:.75}
+.vmark{font-size:22px;flex:none}
+.weekbars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end}
+.wb{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.wb .col{position:relative;width:100%;max-width:40px;height:84px;background:var(--muted-fill);border-radius:8px;overflow:hidden}
+.wb .col i{position:absolute;left:0;right:0;bottom:0;background:var(--ok)}
+.wb.today .col{outline:3px solid var(--accent)}
+.wb.future{opacity:.45}
+.wbn{font-size:12px;color:var(--muted)}.wbd{font-size:13px;font-weight:600}
+.vrow{display:grid;grid-template-columns:minmax(90px,34%) minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0}
+.vrow .vl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vrow .vr{min-width:48px;text-align:right}
+.btn.sharebtn{width:100%;min-height:56px;font-size:18px;margin:4px 0 12px}
+body.readonly .edit-only,body.readonly .weekmenu,body.readonly .addtask{display:none!important}
+body.readonly .bookcard,body.readonly .notebtn{pointer-events:none}
 @media print{
   header.top,nav.tabs,.no-print,#toasts,#aibar,.btn{display:none!important}
   .print-only{display:block!important}
@@ -255,8 +280,10 @@ input[type=file]{padding:10px 12px;min-height:48px;width:100%;border:1px solid v
   <div class="row">
     <div class="brand"><b>LGS Yolculuğum</b></div>
     <nav class="tabs" id="tabs" aria-label="Bölümler"></nav>
+    <button class="sync-ind hidden" id="sync-ind" type="button" aria-label="Eşitleme durumu"></button>
     <button class="icon-btn" id="btn-settings" type="button" aria-label="Ayarlar" title="Ayarlar">&#9881;</button>
   </div>
+  <div id="reader-strip" class="hidden"></div>
 </header>
 <div class="wrap">
   <div id="storage-warn"></div>
@@ -617,6 +644,7 @@ function migrateState(s) {
   }
   if (!m.topicOverrides || typeof m.topicOverrides !== 'object') m.topicOverrides = {};
   m.meta = Object.assign({}, s.meta || {});
+  if (!m.meta.modifiedAt) m.meta.modifiedAt = '1970-01-01T00:00:00.000Z';
   if (!m.meta.importTimesCleared) {
     for (const p of Object.values(m.plans)) {
       if (p.source !== 'import') continue;
@@ -648,10 +676,13 @@ function loadState() {
   return migrateState(null);
 }
 function writeNow() {
+  if (typeof readerGuard === 'function' && readerGuard()) return;
   try { localStorage.setItem(KEY, JSON.stringify(state)); }
   catch (e) { if (storageOK) { storageOK = false; renderStorageWarn(); } }
 }
-const saveState = debounce(writeNow, 300);
+const saveStateDebounced = debounce(writeNow, 300);
+const saveState = () => { noteChange(); saveStateDebounced(); };
+saveState.flush = saveStateDebounced.flush;
 function exportBackup() {
   const st = clone(state); st.settings.apiKey = '';
   return { app: 'lgs-takip', backupVersion: 1, exportedAt: new Date().toISOString(), state: st };
@@ -662,7 +693,404 @@ function importBackup(obj) {
   const ns = migrateState(obj.state);
   ns.settings.apiKey = key;
   state = ns; writeNow();
+  noteChange();
 }
+/* ============================ ortak veri (GitHub eşitleme) ============================ */
+/*SYNC-B64-START*/
+function utf8ToB64(str) {
+  const bytes = new TextEncoder().encode(String(str));
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64ToUtf8(b64) {
+  const bin = atob(String(b64).replace(/[\r\n\s]/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+/*SYNC-B64-END*/
+const SYNC_KEY = 'lgsTakip.sync';
+const SYNC_DEF = { enabled: false, repo: 'zerenbiber/lgsTakip-veri', path: 'veri.json', token: '', role: null, showVeli: false, bound: null, lastRemote: null, lastSyncedMod: null };
+class SyncError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+const sync = { cfg: Object.assign({}, SYNC_DEF), status: 'off', err: '', lastOk: null, remoteUpdatedAt: null, sha: null, lastSig: null, pending: false, pt: null, iv: null, q: Promise.resolve(), applying: false, readerFull: null, readerCore: null, listenersOn: false, reconciled: false, dismissed: false, allowEmpty: false, gen: 0, coreSig: null, reconQueued: false, reconRunning: false, rerenderPending: false };
+function loadSyncCfg() {
+  try { const o = JSON.parse(localStorage.getItem(SYNC_KEY) || 'null'); if (o && typeof o === 'object') sync.cfg = Object.assign({}, SYNC_DEF, o); } catch (e) { /* yoksay */ }
+  if (sync.cfg.role !== 'reader' && sync.cfg.role !== 'writer') sync.cfg.role = null;
+  sync.remoteUpdatedAt = sync.cfg.lastRemote || null;
+}
+function saveSyncCfg() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(sync.cfg)); } catch (e) { /* yoksay */ } }
+const validRepo = r => /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(r || '').trim());
+const syncReady = () => !!(sync.cfg.enabled && sync.cfg.role && sync.cfg.token && validRepo(sync.cfg.repo) && String(sync.cfg.path || '').trim());
+const isReader = () => !!(sync.cfg.enabled && sync.cfg.role === 'reader');
+const isWriter = () => !!(sync.cfg.enabled && sync.cfg.role === 'writer');
+const fmtClock = t => { const d = new Date(t); return isNaN(d) ? '' : `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const fmtWhen = t => { const d = new Date(t); if (isNaN(d)) return ''; return localDateKey(d) === todayKey() ? fmtClock(d) : `${fmtDate(localDateKey(d), { day: 'numeric', month: 'long' })} ${fmtClock(d)}`; };
+function syncErrMsg(status) {
+  switch (status) {
+    case 0: return 'İnternet bağlantısı yok ya da GitHub\'a ulaşılamadı.';
+    case 401: return 'Anahtar geçersiz ya da süresi dolmuş. Ayarlar\'dan yeni anahtar gir.';
+    case 403: return 'Anahtarın bu işlem için izni yok (ya da çok sık istek yapıldı). Anahtarın "Contents" iznini kontrol et.';
+    case 404: return 'Depo bulunamadı veya anahtarın bu depoya izni yok.';
+    case 409: return 'Dosya başka yerde değişti (çakışma). Biraz sonra tekrar denenecek.';
+    case 422: return 'Dosya güncellenemedi (sürüm uyuşmazlığı).';
+    default: return `GitHub hatası (${status}).`;
+  }
+}
+const contentsPath = () => `/repos/${sync.cfg.repo.trim()}/contents/${sync.cfg.path.trim().replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/')}`;
+async function ghFetch(method, apiPath, opt = {}) {
+  const headers = { Authorization: 'Bearer ' + sync.cfg.token, Accept: opt.accept || 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+  if (opt.body) headers['Content-Type'] = 'application/json';
+  try { return await fetch('https://api.github.com' + apiPath, { method, headers, body: opt.body, cache: 'no-store', keepalive: opt.keepalive || undefined }); }
+  catch (e) { throw new SyncError(0, syncErrMsg(0)); }
+}
+async function readRemote(path = contentsPath()) {
+  const res = await ghFetch('GET', path);
+  if (res.status === 404) return { missing: true };
+  if (!res.ok) throw new SyncError(res.status, syncErrMsg(res.status));
+  const j = await res.json();
+  let text = '';
+  if (j.content && j.encoding === 'base64') { try { text = b64ToUtf8(j.content); } catch (e) { text = ''; } }
+  if (!text.trim()) {
+    const r2 = await ghFetch('GET', path, { accept: 'application/vnd.github.raw+json' });
+    if (!r2.ok) throw new SyncError(r2.status, syncErrMsg(r2.status));
+    text = await r2.text();
+  }
+  let doc; try { doc = JSON.parse(text); } catch (e) { throw new SyncError(-1, 'Buluttaki dosya okunamadı (bozuk görünüyor).'); }
+  if (!doc || doc.app !== 'lgs-takip' || !doc.state || typeof doc.state !== 'object') throw new SyncError(-1, 'Buluttaki dosya bir LGS Takip verisi değil.');
+  return { sha: j.sha, doc };
+}
+function buildPayload() {
+  const st = clone(state); st.settings.apiKey = ''; delete st.ui;
+  return { app: 'lgs-takip', syncVersion: 1, updatedAt: state.meta.modifiedAt || new Date().toISOString(), deviceName: isReader() ? 'Veli cihazı' : 'Öğrenci cihazı', state: st };
+}
+const localEmpty = () => !state.books.length && !Object.keys(state.plans).length;
+function setSyncStatus(st, msg) { sync.status = st; if (st === 'err') sync.err = msg || ''; renderSyncChrome(); }
+const syncRun = fn => (sync.q = sync.q.catch(() => { /* yoksay */ }).then(fn));
+function applyRemote(doc, asLocal) {
+  const ns = migrateState(doc.state);
+  ns.settings.apiKey = state.settings.apiKey; ns.ui = state.ui; ns.profile.theme = state.profile.theme;
+  if (asLocal) ns.meta.modifiedAt = doc.updatedAt || ns.meta.modifiedAt;
+  state = ns; sync.applying = true; try { writeNow(); } finally { sync.applying = false; }
+  sync.lastSig = JSON.stringify(buildPayload().state);
+  snapReader(); sync.coreSig = coreSig();
+  if (parseRoute().name === 'ayarlar') {
+    renderSyncChrome();
+    const f = document.activeElement;
+    if (f && /^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName) && $('#view').contains(f)) sync.rerenderPending = true; else rerender(true);
+  } else rerender(true);
+}
+function coreOf(s) { return JSON.stringify(Object.assign({}, s, { ui: 0, settings: 0, meta: 0, profile: Object.assign({}, s.profile, { theme: 0 }) })); }
+function snapReader() { sync.readerFull = JSON.stringify(state); sync.readerCore = coreOf(state); }
+/* veli cihazında salt okunur koruma: izinli alanlar (tema, ayarlar, arayüz) dışında değişiklik olursa geri al */
+function readerGuard(noRender) {
+  if (!isReader() || sync.applying) return false;
+  if (!sync.readerCore) snapReader();
+  if (coreOf(state) === sync.readerCore) return false;
+  const keep = { theme: state.profile.theme, settings: state.settings, ui: state.ui };
+  state = migrateState(JSON.parse(sync.readerFull));
+  state.profile.theme = keep.theme; state.settings = keep.settings; state.ui = keep.ui;
+  showToast('Veli cihazında değişiklik yapılamaz 🙂', 'info');
+  if (!noRender) rerender(true);
+  return true;
+}
+const PENDING_MSG = 'Bulut ile karşılaştırma bekliyor. "Şimdi eşitle" ile devam edebilirsin.';
+const bindKey = () => (sync.cfg.repo.trim() + '/' + sync.cfg.path.trim()).toLowerCase();
+const setRemoteUpdated = t => { sync.remoteUpdatedAt = t || null; sync.cfg.lastRemote = t || null; saveSyncCfg(); };
+const remoteHasData = doc => !!((doc.state.books || []).length || Object.keys(doc.state.plans || {}).length);
+const countsText = st => `${(st.books || []).length} kitap, ${Object.keys(st.plans || {}).length} hafta`;
+function ensureStamp() { if (!(Date.parse(state.meta.modifiedAt) > 0)) state.meta.modifiedAt = new Date().toISOString(); }
+const coreSig = () => JSON.stringify(Object.assign({}, state, { ui: 0, meta: 0, settings: Object.assign({}, state.settings, { apiKey: '' }) }));
+const sigState = st => JSON.stringify(Object.assign({}, st, { meta: Object.assign({}, st.meta, { modifiedAt: 0 }) }));
+const setSynced = m => { sync.cfg.lastSyncedMod = m || null; saveSyncCfg(); };
+function noteChange() {
+  if (isReader()) return;
+  const cs = coreSig(); if (cs === sync.coreSig) return;   /* yalnızca arayüz (ui) değişti: eşitleme gerekmez */
+  sync.coreSig = cs;
+  state.meta.modifiedAt = new Date().toISOString();
+  if (!isWriter() || !syncReady()) return;
+  sync.pending = true; if (sync.status !== 'err') setSyncStatus('busy');
+  clearTimeout(sync.pt); sync.pt = setTimeout(() => syncRun(() => doPush()), 5000);
+}
+async function doPush(keepalive) {
+  if (!syncReady() || !isWriter()) return;
+  if (!sync.reconciled) { if (sync.dismissed) { setSyncStatus('err', PENDING_MSG); return; } return doReconcile(); }
+  if (localEmpty() && !sync.allowEmpty) { sync.pending = false; setSyncStatus('ok'); return; }
+  const gen = sync.gen, path = contentsPath(); const stale = () => gen !== sync.gen;
+  sync.pending = false; setSyncStatus('busy');
+  try {
+    if (!sync.allowEmpty) ensureStamp();
+    const payload = buildPayload(); const sig = sigState(payload.state);
+    if (sync.sha && sig === sync.lastSig) { setSynced(payload.updatedAt); sync.lastOk = Date.now(); setSyncStatus('ok'); return; }
+    const put = sha => { const body = JSON.stringify(Object.assign({ message: `Güncelleme ${localDateKey(new Date())} ${fmtClock(Date.now())}`, content: utf8ToB64(JSON.stringify(payload)) }, sha ? { sha } : {})); return ghFetch('PUT', path, { body, keepalive: !!keepalive && body.length < 60000 }); };
+    let res = await put(sync.sha); if (stale()) return;
+    if (res.status === 409 || res.status === 422) {
+      const r = await readRemote(path); if (stale()) return;
+      if (!sync.allowEmpty && !r.missing && r.doc.updatedAt !== sync.remoteUpdatedAt) { sync.reconciled = false; sync.dismissed = false; sync.pending = true; return doReconcile(); }
+      sync.sha = r.missing ? null : r.sha; res = await put(sync.sha); if (stale()) return;
+    }
+    if (!res.ok) throw new SyncError(res.status, syncErrMsg(res.status));
+    let j = null; try { j = await res.json(); } catch (e) { /* yoksay */ }
+    if (stale()) return;
+    sync.sha = (j && j.content && j.content.sha) || null; sync.lastSig = sig; setRemoteUpdated(payload.updatedAt); setSynced(payload.updatedAt); sync.lastOk = Date.now();
+    setSyncStatus('ok');
+  } catch (e) { if (stale()) return; sync.pending = true; setSyncStatus('err', e.message); }
+}
+function askModal(title, text, buttons) {
+  return new Promise(res => {
+    let fin = false; const done = v => { if (!fin) { fin = true; res(v); } };
+    openModal({ title, body: el('p', { text }), buttons: buttons.map(b => ({ label: b[1], cls: b[2] || '', onClick: () => done(b[0]) })), onClose: () => done(null) });
+  });
+}
+const askChoice = (title, lead, remoteSt) => askModal(title, `${lead}Bulutta: ${countsText(remoteSt)} · Bu cihazda: ${countsText(state)}. Hangisi kalsın?`, [['cloud', 'Buluttakini bu cihaza yükle', 'primary'], ['local', 'Bu cihazdakini buluta yaz'], ['skip', 'Şimdilik karışma']]);
+async function doReconcile() {
+  if (!syncReady() || !isWriter()) return;
+  const outer = !sync.reconRunning; sync.reconRunning = true;
+  const gen = sync.gen, key = bindKey(), path = contentsPath(); const stale = () => gen !== sync.gen;
+  setSyncStatus('busy');
+  try {
+    const r = await readRemote(path); if (stale()) return;
+    const prevRemote = sync.cfg.lastRemote;
+    const finish = () => { if (stale()) return false; sync.reconciled = true; sync.dismissed = false; sync.cfg.bound = key; saveSyncCfg(); return true; };
+    const pushLocal = async () => { if (!finish()) return; sync.pending = false; await doPush(); };
+    if (r.missing) { sync.sha = null; setRemoteUpdated(null); if (localEmpty()) { if (finish()) { sync.lastOk = Date.now(); setSyncStatus('ok'); } return; } await pushLocal(); return; }
+    sync.sha = r.sha; setRemoteUpdated(r.doc.updatedAt);
+    const rSig = sigState(r.doc.state), lSig = sigState(buildPayload().state);
+    const remoteHas = remoteHasData(r.doc), localHas = !localEmpty();
+    if (rSig === lSig || (localHas && r.doc.updatedAt === state.meta.modifiedAt)) { if (!finish()) return; sync.lastSig = rSig; setSynced(state.meta.modifiedAt); sync.lastOk = Date.now(); setSyncStatus('ok'); return; }
+    const adopt = () => { applyRemote(r.doc, true); if (!finish()) return; setSynced(state.meta.modifiedAt); sync.lastSig = sigState(r.doc.state); sync.lastOk = Date.now(); setSyncStatus('ok'); };
+    if (!localHas && remoteHas) { adopt(); return; }
+    if (!localHas && !remoteHas) { if (finish()) { sync.lastOk = Date.now(); setSyncStatus('ok'); } return; }
+    if (localHas && !remoteHas) { await pushLocal(); return; }
+    // ikisinde de veri var ve farklı
+    const bound = sync.cfg.bound === key;
+    const cloudChanged = r.doc.updatedAt !== prevRemote;                 /* bu cihaz son eşitlemeden beri bulutta değişiklik var mı */
+    const localChanged = state.meta.modifiedAt !== sync.cfg.lastSyncedMod; /* bu cihazda değişiklik var mı */
+    if (bound && !cloudChanged) { await pushLocal(); return; }          /* yalnızca bu cihaz değişti */
+    if (bound && !localChanged) { adopt(); return; }                    /* yalnızca bulut değişti */
+    const c = bound ? await askChoice('Hem bu cihazda hem bulutta değişiklik var', 'Hem bu cihazda hem bulutta değişiklik var. ', r.doc.state) : await askChoice('Bulut ile bu cihaz farklı', '', r.doc.state);
+    if (stale()) return;
+    if (c === 'cloud') { adopt(); return; }
+    if (c === 'local') { state.meta.modifiedAt = new Date().toISOString(); writeNow(); await pushLocal(); return; }
+    sync.reconciled = false; sync.dismissed = true; setSyncStatus('err', PENDING_MSG);
+  } catch (e) { if (!stale()) setSyncStatus('err', e.message); }
+  finally { if (outer) sync.reconRunning = false; }
+}
+async function doPull() {
+  if (!syncReady() || !isReader()) return;
+  if (sync.status === 'off') setSyncStatus('busy');
+  try {
+    const r = await readRemote();
+    if (r.missing) { setSyncStatus('err', 'Bulutta dosya yok (ya da depo bulunamadı). Öğrencinin cihazı ilk kaydı yapınca görünecek.'); return; }
+    setRemoteUpdated(r.doc.updatedAt); sync.lastOk = Date.now();
+    if (r.sha !== sync.sha) { sync.sha = r.sha; applyRemote(r.doc, false); }
+    setSyncStatus('ok');
+  } catch (e) { setSyncStatus('err', e.message); }
+}
+function queueReconcile() {
+  if (sync.reconQueued || sync.reconRunning) return;
+  sync.reconQueued = true;
+  syncRun(() => { sync.reconQueued = false; if (sync.reconciled || sync.dismissed) return; return doReconcile(); });
+}
+function syncStart() {
+  clearInterval(sync.iv); clearTimeout(sync.pt); sync.sha = null; sync.lastSig = null; sync.pending = false; sync.reconciled = false; sync.dismissed = false; sync.gen++;
+  if (!sync.cfg.enabled) { sync.status = 'off'; renderSyncChrome(); return; }
+  if (!sync.cfg.role) { setSyncStatus('err', 'Önce kimin cihazı olduğunu seç.'); return; }
+  if (isReader()) snapReader();
+  if (!syncReady()) { setSyncStatus('err', 'Anahtar ya da depo adı eksik. Ayarlar\'dan doldur.'); return; }
+  sync.iv = setInterval(() => {
+    if (isReader()) { if (document.visibilityState === 'visible') syncRun(doPull); }
+    else if (!sync.reconciled) queueReconcile();
+    else if (sync.pending || sync.status === 'err') syncRun(() => doPush());
+  }, 60000);
+  syncRun(isReader() ? doPull : doReconcile);
+}
+function syncNow() { if (!syncReady()) { showToast('Önce ayarları doldur.', 'error'); return Promise.resolve(); } sync.dismissed = false; return syncRun(isReader() ? doPull : doReconcile); }
+function syncInit() {
+  loadSyncCfg(); sync.coreSig = coreSig();
+  if (sync.listenersOn) return; sync.listenersOn = true;
+  $('#view').addEventListener('focusout', e => {
+    if (!sync.rerenderPending) return;
+    const to = e.relatedTarget, view = $('#view');
+    if (to && view.contains(to)) return;                         /* odak görünümün içinde kaldı */
+    setTimeout(() => {
+      if (!sync.rerenderPending) return;
+      const a = document.activeElement;
+      if (a && a !== document.body && view.contains(a)) return;
+      rerender(true);
+    }, 0);
+  });
+  window.addEventListener('online', () => { if (!syncReady()) return; if (isReader()) syncRun(doPull); else if (!sync.reconciled) queueReconcile(); else if (sync.pending || sync.status === 'err') syncRun(() => doPush()); });
+  const flushPush = () => { if (sync.pending && isWriter() && syncReady()) { clearTimeout(sync.pt); syncRun(() => doPush(true)); } };
+  window.addEventListener('pagehide', flushPush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPush(); else if (syncReady() && isReader()) syncRun(doPull); });
+  $('#sync-ind').addEventListener('click', () => {
+    if (sync.status === 'err') { showToast(sync.err || 'Eşitleme hatası', 'error'); navigate('#ayarlar'); }
+    else if (sync.status === 'busy') showToast('Gönderiliyor…');
+    else showToast(sync.lastOk ? `Eşitlendi ${fmtClock(sync.lastOk)}` : 'Eşitleme açık');
+  });
+}
+function renderSyncChrome() {
+  document.body.classList.toggle('readonly', isReader());
+  const ind = $('#sync-ind'), on = sync.cfg.enabled;
+  if (ind) {
+    ind.classList.toggle('hidden', !on); ind.dataset.state = on ? sync.status : 'off';
+    ind.textContent = sync.status === 'busy' ? '☁⟳' : sync.status === 'err' ? '☁!' : (sync.lastOk ? `☁✓ ${fmtClock(sync.lastOk)}` : '☁');
+    ind.setAttribute('aria-label', sync.status === 'err' ? 'Eşitleme hatası' : 'Eşitleme durumu');
+  }
+  const strip = $('#reader-strip');
+  if (strip) {
+    strip.replaceChildren(); strip.classList.toggle('hidden', !isReader());
+    if (isReader()) strip.appendChild(el('div', { class: 'readerstrip' }, `👀 Veli modu · Son güncelleme: ${sync.remoteUpdatedAt ? fmtWhen(sync.remoteUpdatedAt) : 'henüz veri yok'} (öğrencinin cihazından)`));
+  }
+}
+async function syncTest(out) {
+  const c = sync.cfg;
+  if (!validRepo(c.repo)) return out('Depo adı "kullanıcı/depo" biçiminde olmalı.', false);
+  if (!c.token) return out('Önce anahtarı yapıştır.', false);
+  if (!String(c.path || '').trim()) return out('Dosya yolu boş olamaz.', false);
+  out('Deneniyor…', null);
+  try {
+    const r1 = await ghFetch('GET', '/repos/' + c.repo.trim());
+    if (!r1.ok) return out(syncErrMsg(r1.status), false);
+    const r2 = await ghFetch('GET', contentsPath());
+    if (r2.status === 404) return out('Bağlandı ✔ — Dosya henüz yok — öğrenci cihazı ilk kaydı yapınca oluşacak.', true);
+    if (!r2.ok) return out(syncErrMsg(r2.status), false);
+    out('Bağlandı ✔', true);
+  } catch (e) { out(e.message, false); }
+}
+function syncCard() {
+  const c = sync.cfg;
+  const out = el('p', { class: 'small', 'aria-live': 'polite' });
+  const show = (t, ok) => { out.textContent = t; out.className = 'small ' + (ok === false ? 'err' : ok ? 'okmsg' : 'muted'); };
+  const lab = (t, n) => el('label', { class: 'f' }, [t, n]);
+  const repoIn = el('input', { type: 'text', value: c.repo, placeholder: 'kullanıcı/depo', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+  const pathIn = el('input', { type: 'text', value: c.path, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+  const tokIn = el('input', { type: 'password', value: c.token, placeholder: 'github_pat_…', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+  const commit = () => { c.repo = repoIn.value.trim(); c.path = pathIn.value.trim() || 'veri.json'; c.token = tokIn.value.trim(); saveSyncCfg(); };
+  [repoIn, pathIn, tokIn].forEach(i => i.addEventListener('change', () => { commit(); syncStart(); }));
+  const roleBtn = (role, text, sub) => el('button', { type: 'button', class: 'rolebtn' + (c.role === role ? ' on' : ''), 'aria-pressed': String(c.role === role), onClick: async () => { commit(); if (c.role === role) return; if (role === 'reader' && !localEmpty() && !(await confirmDialog('Bu cihazdaki veri buluttakiyle değiştirilecek.', 'Devam', true))) return; c.role = role; if (role === 'reader') c.showVeli = false; saveSyncCfg(); syncStart(); rerender(true); } }, [el('b', { text }), el('span', { class: 'small', text: sub })]);
+  const enCb = el('input', { type: 'checkbox', checked: c.enabled && !!c.role, disabled: c.role ? null : true, style: 'width:26px;height:26px' });
+  enCb.addEventListener('change', () => { commit(); c.enabled = enCb.checked; saveSyncCfg(); syncStart(); rerender(true); });
+  const veliCb = el('input', { type: 'checkbox', checked: c.showVeli, style: 'width:26px;height:26px' });
+  veliCb.addEventListener('change', () => { c.showVeli = veliCb.checked; saveSyncCfg(); rerender(true); });
+  const help = el('details', { class: 'det' }, [el('summary', { text: 'Anahtar nasıl alınır?' }), el('ol', { class: 'small' }, [
+    'Önce depoyu aç: github.com/new → ad: lgsTakip-veri → Private → Create repository.',
+    'Sonra github.com → sağ üstte profil resmin → Settings.',
+    'Soldaki listenin en altında Developer settings → Personal access tokens → Fine-grained tokens.',
+    'Generate new token düğmesine bas.',
+    'Expiration (süre): Custom → bir yıl sonrasını seç.',
+    'Repository access: "Only select repositories" → lgsTakip-veri deposunu seç.',
+    'Permissions → "Add permissions" → Contents. Öğrenci cihazı için "Read and write", veli cihazı için "Read-only" seç.',
+    'İki ayrı anahtar gerekir: öğrenci için (Read and write) ve veli için (Read-only). Her veli için ayrı bir anahtar da üretebilirsin.',
+    'Generate token → çıkan anahtarı kopyala → o cihazda buraya yapıştır.'].map(t => el('li', { text: t }))), el('p', { class: 'small err', text: 'Bu anahtarı kimseyle paylaşma.' })]);
+  return card('☁ Ortak veri (veli takibi)', el('div', { class: 'stack' }, [
+    el('p', { class: 'small muted', text: 'Öğrencinin cihazındaki program gizli bir GitHub deposuna kaydedilir; velinin cihazı oradan okuyup bugünü görür. Anahtar yalnızca bu cihazda saklanır, yedeğe girmez.' }),
+    el('label', { class: 'row' }, [enCb, 'Ortak veriyi aç']),
+    c.role ? null : el('p', { class: 'small err', text: 'Önce kimin cihazı olduğunu seç' }),
+    el('div', { class: 'rolegrid' }, [roleBtn('writer', 'Öğrencinin cihazı', '(kaydeder)'), roleBtn('reader', 'Velinin cihazı', '(sadece izler)')]),
+    lab('Depo (kullanıcı/depo)', repoIn), lab('Dosya yolu', pathIn),
+    lab('Anahtar (token)', el('div', { class: 'row' }, [tokIn, btn('Göster', e => { const t = tokIn.type === 'password'; tokIn.type = t ? 'text' : 'password'; e.currentTarget.textContent = t ? 'Gizle' : 'Göster'; }, 'sm')])),
+    c.role !== 'reader' ? el('label', { class: 'row' }, [veliCb, 'Veli sayfasını menüde göster']) : null,
+    el('div', { class: 'row wrapflex' }, [btn('Bağlantıyı dene', () => { commit(); syncTest(show); }, 'sm primary'), btn('Şimdi eşitle', async () => { commit(); if (!c.enabled) { show('Önce "Ortak veriyi aç" kutusunu işaretle.', false); return; } show('Eşitleniyor…', null); await syncNow(); show(sync.status === 'err' ? sync.err : 'Eşitlendi ✔', sync.status === 'err' ? false : true); }, 'sm')]),
+    out, help]));
+}
+
+async function wipeConfirm() {
+  if (!isWriter()) return { ok: await confirmDialog('Tüm verilerin (kitaplar, programlar, ayarlar, API anahtarı) silinecek.', 'Devam', true), cloud: false };
+  const cb = el('input', { type: 'checkbox', style: 'width:26px;height:26px' });
+  return new Promise(res => {
+    let fin = false; const done = v => { if (!fin) { fin = true; res(v); } };
+    openModal({ title: 'Onay', body: el('div', { class: 'stack' }, [
+      el('p', { text: 'Bu cihazdaki tüm veriler (kitaplar, programlar, ayarlar, API anahtarı) silinecek. Ortak veri anahtarın bu cihazda kalır.' }),
+      el('p', { text: 'Bulut kopyası da silinir: aşağıdaki kutuyu işaretlersen. İşaretlemezsen bulut kopyası kalır ve bu cihazda ortak veri kapatılır.' }),
+      el('label', { class: 'row' }, [cb, 'Buluttaki kopyayı da sil'])]),
+      buttons: [{ label: 'Vazgeç', onClick: () => done({ ok: false }) }, { label: 'Devam', cls: 'danger', onClick: () => done({ ok: true, cloud: cb.checked }) }], onClose: () => done({ ok: false }) });
+  });
+}
+async function afterWipe(cloud) {
+  if (!isWriter()) return;
+  if (cloud) {
+    state.meta.modifiedAt = new Date().toISOString(); sync.reconciled = true; sync.allowEmpty = true;
+    try { await syncRun(() => doPush()); } finally { sync.allowEmpty = false; }
+    showToast(sync.status === 'err' ? 'Bulut kopyası silinemedi: ' + sync.err : 'Bulut kopyası da silindi', sync.status === 'err' ? 'error' : 'success');
+  } else { sync.cfg.enabled = false; sync.cfg.bound = null; sync.cfg.lastSyncedMod = null; saveSyncCfg(); syncStart(); rerender(true); }
+}
+
+/* ---- Veli sayfası ---- */
+function dayInfo(key) { const ws = weekStartKey(parseKey(key)); const d = daysBetween(ws, key); const list = sortedDay(state.plans[ws], d); return { ws, d, list, done: list.filter(s => s.done).length }; }
+function weekSoFar() { const l = (state.plans[weekStartKey(new Date())]?.sessions || []).filter(x => x.day <= todayIdx()); return { n: l.length, done: l.filter(x => x.done).length }; }
+function reportText() {
+  const t = todayKey(), di = dayInfo(t), days = daysToExam(), sofar = weekSoFar();
+  const lines = [`📅 ${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })} — ${di.list.length ? `${di.done}/${di.list.length} görev ✔` : 'bugün için program yok'}`];
+  di.list.forEach(s => { const b = s.bookId ? state.books.find(x => x.id === s.bookId) : null; lines.push(`${s.done ? '✅' : '⬜'} ${subjShort(s.subjectId)}: ${s.title || subjShort(s.subjectId)}${b ? ' — ' + b.title : ''}`); });
+  lines.push(`Bu hafta (bugüne kadar): ${sofar.done}/${sofar.n}` + (days != null && days >= 0 ? ` · LGS'ye ${days} gün` : ''));
+  return lines.join('\n');
+}
+async function shareReport() {
+  const text = reportText();
+  try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener'); } catch (e) { /* yoksay */ }
+  try { await navigator.clipboard.writeText(text); showToast('Rapor panoya kopyalandı', 'success'); } catch (e) { showToast('Rapor WhatsApp\'ta açıldı', 'info'); }
+}
+function viewVeli(root) {
+  const page = el('div', { class: 'page' }); root.appendChild(page);
+  const t = todayKey(), ws = weekStartKey(new Date()), days = daysToExam();
+  const di = dayInfo(t), yi = dayInfo(addDays(t, -1)), pn = planNum(state.plans[ws]);
+  page.appendChild(el('section', { class: 'hero' }, [
+    el('div', { class: 'row between' }, [el('h1', { text: '👨‍👩‍👦 Veli sayfası' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
+    isReader() ? el('div', { class: 'small muted', text: sync.remoteUpdatedAt ? `Son güncelleme: ${fmtWhen(sync.remoteUpdatedAt)} (öğrencinin cihazından)` : 'Henüz veri alınmadı.' }) : null,
+    isReader() && sync.status === 'err' ? el('div', { class: 'small err', text: sync.err }) : null]));
+  // bugün
+  const today = el('section', { class: 'card vcard' }, [el('h2', { text: `Bugün · ${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })}` })]);
+  if (!di.list.length) today.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '🌤️' }), el('p', { text: 'Bugün için program yok.' })]));
+  else {
+    today.appendChild(el('div', { class: 'vbig', text: `${di.done} / ${di.list.length} görev bitti` }));
+    today.appendChild(progBar(di.done / di.list.length, 'var(--ok)'));
+    const note = state.plans[ws]?.dayNotes?.[di.d]; if (note) today.appendChild(el('p', { class: 'small muted', text: '📝 ' + note }));
+    di.list.forEach(s => today.appendChild(el('div', { class: 'vtask' + (s.done ? ' isdone' : ''), style: `--sc:${s.subjectId ? subjectColor(s.subjectId) : 'var(--muted)'}` }, [
+      el('span', { class: 'vmark', text: s.done ? '✅' : '⬜' }), el('span', { class: 'temoji', text: subjEmoji(s.subjectId) }),
+      el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: [subjShort(s.subjectId), s.bookId ? state.books.find(x => x.id === s.bookId)?.title : null, `${s.durationMin} dk`].filter(Boolean).join(' · ') })])])));
+  }
+  page.appendChild(today);
+  // dün
+  const yc = el('section', { class: 'card vcard' }, [el('h2', { text: 'Dün' })]);
+  if (!yi.list.length) yc.appendChild(el('p', { class: 'muted', text: 'Dün için program yoktu.' }));
+  else {
+    const miss = yi.list.filter(s => !s.done);
+    yc.appendChild(el('p', { class: 'vbig', style: 'font-size:20px', text: `Dün ${yi.done}/${yi.list.length}${yi.done === yi.list.length ? ' ✔' : ''}` }));
+    if (miss.length) yc.appendChild(el('details', { class: 'det' }, [el('summary', { text: `Yapılmayanlar (${miss.length})` }), el('ul', null, miss.map(s => el('li', { text: `${subjEmoji(s.subjectId)} ${s.title || subjShort(s.subjectId)}` })))]));
+  }
+  page.appendChild(yc);
+  // bu hafta
+  const wk = el('section', { class: 'card vcard' }, [el('h2', { text: `Bu hafta · %${pn.n ? Math.round(pn.done / pn.n * 100) : 0}` })]);
+  const bars = el('div', { class: 'weekbars' });
+  for (let i = 0; i < 7; i++) {
+    const k = addDays(ws, i), l = sortedDay(state.plans[ws], i), dn = l.filter(s => s.done).length;
+    bars.appendChild(el('div', { class: 'wb' + (k === t ? ' today' : '') + (k > t ? ' future' : ''), 'aria-label': `${DAY_NAMES[i]} ${dn}/${l.length}` }, [
+      el('span', { class: 'wbn', text: l.length ? `${dn}/${l.length}` : '·' }), el('div', { class: 'col' }, el('i', { style: `height:${l.length ? Math.round(dn / l.length * 100) : 0}%` })), el('span', { class: 'wbd', text: DAY_SHORT[i] })]));
+  }
+  const sf = weekSoFar();
+  wk.appendChild(bars); wk.appendChild(el('p', { class: 'small muted', text: pn.n ? `Bu hafta: ${pn.done}/${pn.n} · Bugüne kadar: ${sf.done}/${sf.n}` : 'Bu hafta için program yok.' }));
+  page.appendChild(wk);
+  // derslere göre
+  const bySubj = new Map(); (state.plans[ws]?.sessions || []).forEach(s => { const o = bySubj.get(s.subjectId || '') || { n: 0, d: 0 }; o.n++; if (s.done) o.d++; bySubj.set(s.subjectId || '', o); });
+  if (bySubj.size) {
+    const sc = el('section', { class: 'card vcard' }, [el('h2', { text: 'Derslere göre bu hafta' })]);
+    bySubj.forEach((o, sid) => sc.appendChild(el('div', { class: 'vrow' }, [el('span', { class: 'vl', text: `${subjEmoji(sid)} ${subjShort(sid)}` }), progBar(o.d / o.n, sid ? subjectColor(sid) : 'var(--muted)', 'mini'), el('b', { class: 'vr', text: `${o.d}/${o.n}` })])));
+    page.appendChild(sc);
+  }
+  // kitaplar
+  const bk = el('section', { class: 'card vcard' }, [el('h2', { text: 'Kitaplar' })]); let nb = 0;
+  visibleSubjects().forEach(s => {
+    const sp = subjectProgress(s.id); if (!sp.books) return; nb++;
+    bk.appendChild(el('div', { class: 'vrow' }, [el('span', { class: 'vl', text: `${subjEmoji(s.id)} ${subjShort(s.id)}` }), progBar(sp.frac, s.color, 'mini'), el('b', { class: 'vr', text: fmtPct(sp.frac) })]));
+  });
+  if (!nb) bk.appendChild(el('p', { class: 'muted', text: 'Henüz kitap eklenmemiş.' }));
+  page.appendChild(bk);
+  page.appendChild(el('button', { type: 'button', class: 'btn primary sharebtn', text: '📤 Raporu paylaş', onClick: shareReport }));
+}
+
 (function probeStorage() { try { localStorage.setItem('lgsTakip.probe', '1'); localStorage.removeItem('lgsTakip.probe'); } catch (e) { storageOK = false; } })();
 
 /* ============================ 3. lgs analysis ============================ */
@@ -1291,7 +1719,7 @@ const STATUS_LABEL = { done: 'Bitti', inProgress: 'Devam', notStarted: 'Başlanm
 const card = (title, kids, cls = '') => el('section', { class: 'card ' + cls }, [title ? el('h2', { text: title }) : null, kids]);
 const btn = (label, onClick, cls = '', extra) => el('button', Object.assign({ type: 'button', class: 'btn ' + cls, onClick }, extra || {}), label);
 const navigate = h => { if (location.hash === h) rerender(false); else location.hash = h; };
-const ROUTES = ['program', 'kitaplar', 'lgs', 'ayarlar'];
+const ROUTES = ['program', 'kitaplar', 'lgs', 'veli', 'ayarlar'];
 const visibleSubjects = () => state.subjects.filter(s => s.visible).sort((a, b) => a.order - b.order);
 const lgsShort = ls => SUBJ_SHORT[ls.id] || ls.shortName;
 function inkOn(color) {
@@ -1309,7 +1737,7 @@ function normalizeHash() {
   const raw = (location.hash || '').replace(/^#/, '');
   const p = raw.split('/');
   let target = null;
-  if (!raw) target = '#program';
+  if (!raw) target = isReader() ? '#veli' : '#program';
   else if (p[0] === 'genel') target = '#program';
   else if (p[0] === 'analiz') target = '#lgs';
   else if (p[0] === 'ders') {
@@ -1333,22 +1761,27 @@ function renderChrome() {
   applyTheme(); renderStorageWarn();
   const route = parseRoute();
   const tabs = $('#tabs'); tabs.replaceChildren();
-  [['program', '📅', 'Programım'], ['kitaplar', '📚', 'Kitaplarım'], ['lgs', '📊', 'LGS']].forEach(([n, ic, lb]) => {
+  const tabList = [['program', '📅', 'Programım'], ['kitaplar', '📚', 'Kitaplarım'], ['lgs', '📊', 'LGS']];
+  if (isReader() || sync.cfg.showVeli) tabList.push(['veli', '👨‍👩‍👦', 'Veli']);
+  tabs.style.gridTemplateColumns = `repeat(${tabList.length},1fr)`;
+  tabList.forEach(([n, ic, lb]) => {
     tabs.appendChild(el('button', { type: 'button', class: 'tab' + (route.name === n ? ' active' : ''), 'aria-current': route.name === n ? 'page' : null, onClick: () => navigate('#' + n) }, [el('span', { class: 'ic', text: ic }), el('span', { class: 'lb', text: lb })]));
   });
   $('#btn-settings').classList.toggle('active', route.name === 'ayarlar');
+  renderSyncChrome();
 }
 function rerender(keepScroll = true) {
+  sync.rerenderPending = false;
   const y = window.scrollY;
   closeMenu(); destroyCharts(); normalizeHash(); renderChrome();
   const v = $('#view'); v.replaceChildren();
   const r = parseRoute();
-  try { ({ program: viewProgram, kitaplar: viewBooks, lgs: viewLgs, ayarlar: viewSettings })[r.name](v); }
+  try { ({ program: viewProgram, kitaplar: viewBooks, lgs: viewLgs, veli: viewVeli, ayarlar: viewSettings })[r.name](v); }
   catch (e) { console.error(e); v.appendChild(card('Hata', 'Görünüm çizilirken bir hata oluştu: ' + e.message)); }
   flushCharts();
   window.scrollTo(0, keepScroll ? y : 0);
 }
-function changed() { saveState(); rerender(true); }
+function changed() { if (readerGuard()) return; saveState(); rerender(true); }
 
 const statusBadge = (st, onClick) => {
   const label = st.noMaterial && st.status === 'notStarted' ? 'Kitapta yok' : STATUS_LABEL[st.status];
@@ -1458,8 +1891,8 @@ function viewProgram(root) {
   const k = addDays(ws, d); const list = sortedDay(plan, d);
   const pg = el('section', { class: 'daypage no-print' });
   pg.appendChild(el('h2', { class: 'daytitle', text: `${DAY_NAMES[d]}, ${fmtDate(k, { day: 'numeric', month: 'long' })}` }));
-  pg.appendChild(noteRow(ws, d, plan, !!pv));
-  list.forEach(s => pg.appendChild(taskCard(s, ws, !!pv)));
+  pg.appendChild(noteRow(ws, d, plan, !!pv || isReader()));
+  list.forEach(s => pg.appendChild(taskCard(s, ws, !!pv || isReader())));
   if (!list.length) pg.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '🌤️' }), el('p', { text: `${k === todayKey() ? 'Bugün' : 'Bu gün'} için görev yok.` })]));
   if (!pv) pg.appendChild(el('button', { type: 'button', class: 'btn primary addtask', text: '➕ Görev ekle', onClick: () => taskSheet(ws, null, d) }));
   page.appendChild(pg);
@@ -1524,6 +1957,7 @@ function weekMenuItems(ws, d) {
     { label: '🧹 Haftayı temizle', fn: async () => { if (state.plans[ws] && await confirmDialog('Bu haftanın tüm görevleri ve notları silinecek.', 'Temizle', true)) { delete state.plans[ws]; changed(); } } },
     { label: '📥 Program yükle', fn: () => pasteModal(ws) },
     { label: '✨ Otomatik program öner', fn: () => { const p = generateRulePlan(ws); if (!p.sessions.length) { showToast('Bu hafta için günlük süre yok veya aday konu kalmadı.', 'error'); return; } ui.preview = { weekStart: ws, plan: p, title: 'Otomatik öneri', summary: '', tips: [] }; rerender(true); } }];
+  items.push({ label: '📤 Bugünün raporunu gönder', fn: shareReport });
   if (hasKey()) items.push({ label: '🤖 AI ile program öner', fn: () => aiWeekModal(ws) });
   items.push({ label: '🖨 Yazdır', fn: () => window.print() });
   return items;
@@ -1648,7 +2082,7 @@ function viewBooks(root) {
     state.ui.bookSubject = sid; f.title = ''; f.count = ''; f.topics = '';
     changed(); showToast(`📚 Kitap ${subjShort(sid)} dersine eklendi`, 'success');
   } });
-  page.appendChild(el('section', { class: 'card addbook' }, [
+  page.appendChild(el('section', { class: 'card addbook edit-only' }, [
     el('h2', { text: '➕ Kitap ekle' }),
     el('div', { class: 'flabel', text: 'Hangi ders?' }), chipStrip(subjectOptions(subjects), f.subjectId, id => { f.subjectId = id; }, 'big'),
     el('div', { class: 'flabel', text: 'Kitabın adı' }), nameIn,
@@ -2028,6 +2462,7 @@ function viewSettings(root) {
   g.appendChild(card('Profil', [el('div', { class: 'stack' }, [lab('Adın', nameIn), lab('LGS tarihi (boş = veriden)', dateIn), btn('Veriden sıfırla', () => { p.examDate = null; changed(); }, 'sm'), lab('Tema', themeSel),
     el('h3', { text: 'Otomatik öneri için günlük çalışma süren (dk)', style: 'font-size:16px' }), el('div', { class: 'formgrid' }, dmIns.map(([n, i]) => lab(n, i))),
     btn('Pazartesi değerini hafta içine uygula', () => { for (let i = 1; i < 5; i++) p.dailyMinutes[i] = p.dailyMinutes[0]; changed(); }, 'sm')])]));
+  g.appendChild(syncCard());
   // dersleri yönet
   const rows = state.subjects.slice().sort((a, b) => a.order - b.order).map(s => {
     const em = el('select', { value: subjEmoji(s.id), 'aria-label': 'Emoji', style: 'width:84px' }, (EMOJI_CHOICES.includes(subjEmoji(s.id)) ? EMOJI_CHOICES : [subjEmoji(s.id), ...EMOJI_CHOICES]).map(e => el('option', { value: e, text: e })));
@@ -2080,16 +2515,19 @@ function viewSettings(root) {
   });
   g.appendChild(card('Yedek', el('div', { class: 'stack' }, [btn('Yedeği indir', downloadBackup, 'sm'), lab('Yedeği yükle', fileIn),
     btn('Tüm verileri sil', async () => {
-      if (!(await confirmDialog('Tüm verilerin (kitaplar, programlar, ayarlar, API anahtarı) silinecek.', 'Devam', true))) return;
+      const wipe = await wipeConfirm(); if (!wipe.ok) return;
       if (!(await confirmDialog('Emin misin? Bu işlem geri alınamaz. İstersen önce yedek indir.', 'Evet, hepsini sil', true))) return;
       try { localStorage.removeItem(KEY); } catch (e) { /* yoksay */ }
       state = migrateState(null); ui.preview = null; location.hash = '#program'; rerender(false); showToast('Tüm veriler silindi', 'success');
+      await afterWipe(wipe.cloud);
     }, 'sm danger')])));
+  g.querySelectorAll('section.card').forEach(c => { if (['Dersleri yönet', 'LGS verisi', 'Yedek'].includes(c.querySelector('h2')?.textContent)) c.classList.add('edit-only'); });
 }
 
 /* ============================ 10. init ============================ */
 function init() {
   state = loadState();
+  syncInit();
   applyTheme();
   window.addEventListener('hashchange', () => rerender(false));
   $('#btn-settings').addEventListener('click', () => navigate('#ayarlar'));
@@ -2108,6 +2546,7 @@ function init() {
   window.addEventListener('appinstalled', () => { deferredInstall = null; showToast('Uygulama yüklendi', 'success'); });
   try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => rerender(true)); } catch (e) { /* yoksay */ }
   rerender(false);
+  syncStart();
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 init();
