@@ -661,27 +661,55 @@ function lkSanitize(arr) {
   return (Array.isArray(arr) ? arr : []).filter(l => l && typeof l === 'object' && l.bookId && l.itemId).map(l => ({ bookId: String(l.bookId), itemId: String(l.itemId), amount: Math.max(1, Math.min(9999, Math.round(Number(l.amount)) || 1)) }));
 }
 function lkTouch(it) { it.completedAt = it.done >= it.total ? (it.completedAt || new Date().toISOString()) : null; }
-/* görev işaretlendi: her bağlantı için min(total, done+amount) ekle; gerçekten eklenen miktar applied'e yazılır (çift sayım yok) */
-function lkCheck(s, books) {
-  if (Array.isArray(s.applied) && s.applied.length) return [];
-  const applied = [];
+/* "konu" biriminde tek parçalık bölüm (total 1): görev başına sayılamaz, bu yüzden ilerleme eklenmez; bölüm, ona bağlı bekleyen görev kalmayınca (ya da "(bitir)" görevi işaretlenince) biter */
+const lkIsKonu = it => it.unit === 'konu' && it.total === 1;
+const lkBitir = s => /(bitir)/i.test(String((s && s.title) ?? ''));
+/* s'nin konu-tipi bağlantılarını yeniden hesapla. asDone: s işaretli mi sayılsın. Dönüş: [{bookId,itemId,amount:+n/-n}] (etkinlik kaydı için; applied'e yazılmaz) */
+function lkResync(s, books, plans, asDone) {
+  const ch = [];
   for (const l of s.links || []) {
     const b = books.find(x => x.id === l.bookId), it = b && b.items.find(x => x.id === l.itemId);
-    if (!it) continue;
-    const add = Math.min(it.total, it.done + l.amount) - it.done;
-    if (add > 0) { it.done += add; lkTouch(it); applied.push({ bookId: l.bookId, itemId: l.itemId, amount: add }); }
+    if (!it || !lkIsKonu(it)) continue;
+    let pending = !asDone, bitir = asDone && lkBitir(s);
+    for (const ws of Object.keys(plans || {})) for (const t of (plans[ws] && plans[ws].sessions) || []) {
+      if (t === s || (s.id && t.id === s.id)) continue;
+      if (!(t.links || []).some(x => x.bookId === l.bookId && x.itemId === l.itemId)) continue;
+      if (t.done) { if (lkBitir(t)) bitir = true; } else pending = true;
+    }
+    const want = (bitir || !pending) ? it.total : 0;
+    if (want !== it.done) { ch.push({ bookId: l.bookId, itemId: l.itemId, amount: want - it.done }); it.done = want; lkTouch(it); }
   }
-  s.applied = applied; return applied;
+  return ch;
 }
-/* işaret kaldırıldı: applied kadar geri al */
-function lkUndo(s, books) {
+/* görev işaretlendi: test/sayfa bölümlerinde min(total, done+amount) eklenir (gerçek miktar applied'e yazılır, çift sayım yok); konu bölümleri lkResync ile. histDone (göçle gelen geçmiş görev) iken hiçbir şey eklenmez. */
+function lkCheck(s, books, plans) {
+  if (s.histDone) return [];
+  const out = [];
+  if (!(Array.isArray(s.applied) && s.applied.length)) {
+    const applied = [];
+    for (const l of s.links || []) {
+      const b = books.find(x => x.id === l.bookId), it = b && b.items.find(x => x.id === l.itemId);
+      if (!it || lkIsKonu(it)) continue;
+      const add = Math.min(it.total, it.done + l.amount) - it.done;
+      if (add > 0) { it.done += add; lkTouch(it); applied.push({ bookId: l.bookId, itemId: l.itemId, amount: add }); }
+    }
+    s.applied = applied; out.push(...applied);
+  }
+  out.push(...lkResync(s, books, plans, true));
+  return out;
+}
+/* işaret kaldırıldı: applied kadar geri al, konu bölümlerini yeniden hesapla */
+function lkUndo(s, books, plans) {
+  if (s.histDone) return [];
   const undone = [];
   for (const a of s.applied || []) {
     const b = books.find(x => x.id === a.bookId), it = b && b.items.find(x => x.id === a.itemId);
     if (!it) continue;
     const sub = Math.min(it.done, a.amount); it.done -= sub; lkTouch(it); if (sub) undone.push({ bookId: a.bookId, itemId: a.itemId, amount: sub });
   }
-  s.applied = []; return undone;
+  s.applied = [];
+  lkResync(s, books, plans, false).forEach(c => undone.push({ bookId: c.bookId, itemId: c.itemId, amount: -c.amount }));   /* geri alınan miktar (pozitif) */
+  return undone;
 }
 /* bir bölüm için bekleyen (bitmemiş) görevler: [{ ws, day, date, amount }], tarihe göre */
 function lkPending(plans, bookId, itemId, addDaysFn) {
@@ -712,6 +740,7 @@ function lkCleanToc(obj) {
 function lkMergeToc(base, extra) {
   const out = base.map(r => Object.assign({}, r));
   for (const r of extra) {
+    if (out.length >= 200 && !out.some(x => lkKey(x.title) === lkKey(r.title))) continue;
     const hit = out.find(x => lkKey(x.title) === lkKey(r.title));
     if (!hit) out.push(Object.assign({}, r)); else if (hit.count == null && r.count != null) { hit.count = r.count; hit.unit = r.unit; }
   }
@@ -818,6 +847,7 @@ function linkMigrate(x, books, titleMatch) {
     if (!L.length && !x.done) x.unlinked = true;
   }
   x.links = L; x.applied = [];
+  if (L.length && x.done) x.histDone = true;   /* geçmişte yapılmış görev: ilerlemesi kitapta zaten var, işaret oynatılınca tekrar sayılmasın */
   if (L.length) { delete x.bookId; delete x.itemId; }
 }
 function migrateState(s) {
@@ -1670,7 +1700,7 @@ function mapHttpError(status, msg) {
   if (status === 529 || status >= 500) return 'Servis meşgul; tekrar dene.';
   return `İstek reddedildi (${status})${msg ? ': ' + msg : ''}`;
 }
-async function callClaude({ system, user, schema, effort, maxTokens, useWebSearch, lenient }) {
+async function callClaude({ system, user, schema, effort, maxTokens, useWebSearch, lenient, tocMode }) {
   const key = state.settings.apiKey;
   if (!key) throw new AiError('API anahtarı yok. Ayarlar sekmesinden ekle.');
   const ctrl = new AbortController(); aiRun.ctrl = ctrl; aiRun.userCancel = false;
@@ -1717,7 +1747,7 @@ async function callClaude({ system, user, schema, effort, maxTokens, useWebSearc
     }
     if (lenient) return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
     if (data.stop_reason === 'refusal') throw new AiError('Yapay zekâ bu isteği yanıtlayamadı.');
-    if (data.stop_reason === 'max_tokens') throw new AiError('Yanıt yarıda kesildi; daha kısa hafta/az konu ile dene.');
+    if (data.stop_reason === 'max_tokens') throw new AiError(tocMode ? 'Liste çok uzun olduğu için yarıda kesildi. Fotoğrafı daha az sayfa/konu içerecek şekilde çek ya da ikiye bölüp ayrı ayrı ekle.' : 'Yanıt yarıda kesildi; daha kısa hafta/az konu ile dene.');
     const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
     if (!text.trim()) throw new AiError('Yapay zekâdan boş yanıt geldi.');
     return text;
@@ -1727,7 +1757,7 @@ async function callClaude({ system, user, schema, effort, maxTokens, useWebSearc
   } finally { clearTimeout(timer); aiRun.ctrl = null; }
 }
 async function runAi(btn, fn) {
-  if (aiRun.busy) return;
+  if (aiRun.busy) { showToast('Yapay zekâ şu an başka bir isteği işliyor; bitince tekrar dene.', 'info'); return; }
   aiRun.busy = true; relocateOverlays(); document.body.classList.add('ai-busy'); if (btn) btn.disabled = true;
   try { return await fn(); }
   catch (e) {
@@ -1792,7 +1822,7 @@ async function aiRefreshData() {
   if (!v.ok) throw new AiError('Birleştirilen veri geçersiz: ' + v.errors.join(' '), text);
   return { data: v.data, warnings: v.warnings, changeSummary: refresh.changeSummary, source: 'ai' };
 }
-const TOC_SCHEMA = { type: 'object', properties: { topics: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, count: { type: ['integer', 'null'] }, unit: { type: 'string', enum: ['test', 'sayfa', 'konu'] } }, required: ['title', 'count', 'unit'], additionalProperties: false } } }, required: ['topics'], additionalProperties: false };
+const TOC_SCHEMA = { type: 'object', properties: { topics: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, count: { anyOf: [{ type: 'integer' }, { type: 'null' }] }, unit: { type: 'string', enum: ['test', 'sayfa', 'konu'] } }, required: ['title', 'count', 'unit'], additionalProperties: false } } }, required: ['topics'], additionalProperties: false };
 const SYS_TOC = `Sen bir okuma yardımcısısın. Sana verilen fotoğraf, Türkçe bir test kitabının (soru bankası) ya da ders kitabının İÇİNDEKİLER sayfasıdır. Görevin: her konu/bölüm başlığını ve o konudaki test sayısını okumak.
 Kurallar:
 - Yalnızca fotoğrafta gerçekten yazan başlıkları listele; uydurma, tahmin etme, eksik satırı kendin tamamlama.
@@ -1816,7 +1846,7 @@ async function photoToB64(file) {
 async function aiReadToc(b64s) {
   const content = b64s.map(data => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }));
   content.push({ type: 'text', text: 'Bu içindekiler sayfasındaki konu başlıklarını ve test sayılarını JSON olarak ver.' });
-  const text = await callClaude({ system: SYS_TOC, user: content, schema: TOC_SCHEMA, effort: 'low', maxTokens: 4000 });
+  const text = await callClaude({ system: SYS_TOC, user: content, schema: TOC_SCHEMA, effort: 'low', maxTokens: 8000, tocMode: true });
   let obj; try { obj = parseJsonLoose(text); } catch (e) { throw new AiError('Fotoğraftaki yazıyı okuyamadım. Daha net ve düz bir fotoğraf dene ya da konuları elle yaz.'); }
   return lkCleanToc(obj);
 }
@@ -2191,8 +2221,8 @@ function toggleDone(ws, s) {
   s.done = !s.done; ui.justDone = s.done ? s.id : null;
   const list = sortedDay(state.plans[ws], s.day);
   let prog = '';
-  if (s.done) { const ap = lkCheck(s, state.books); ap.forEach(a => recordActivity(a.bookId, a.itemId, a.amount)); prog = progressText(ap); }
-  else lkUndo(s, state.books).forEach(a => recordActivity(a.bookId, a.itemId, -a.amount));
+  if (s.done) { const ap = lkCheck(s, state.books, state.plans); ap.forEach(a => recordActivity(a.bookId, a.itemId, a.amount)); prog = progressText(ap); }
+  else lkUndo(s, state.books, state.plans).forEach(a => recordActivity(a.bookId, a.itemId, -a.amount));
   changed(); ui.justDone = null;
   if (!s.done) return;
   const tail = prog ? ' · ' + prog : '';
@@ -2204,7 +2234,7 @@ function weekMenuItems(ws, d) {
     { label: '📋 Geçen haftayı kopyala', fn: async () => {
       const prev = state.plans[addDays(ws, -7)]; if (!prev || !prev.sessions.length) { showToast('Geçen haftada görev yok.', 'error'); return; }
       if (state.plans[ws]?.sessions.length && !(await confirmDialog('Bu haftanın görevlerinin üzerine yazılacak. Devam?'))) return;
-      const p = applyPlan(ws, 'manual', prev.sessions.map(s => Object.assign({}, s, { id: uid(), done: false, links: clone(s.links || []), applied: [] })), '');
+      const p = applyPlan(ws, 'manual', prev.sessions.map(s => Object.assign({}, s, { id: uid(), done: false, links: clone(s.links || []), applied: [], unlinked: undefined, histDone: undefined })), '');
       p.dayNotes = p.dayNotes.map((n, i) => n || prev.dayNotes?.[i] || '');
       changed(); showToast('Geçen haftanın programı kopyalandı', 'success');
     } },
@@ -2221,7 +2251,7 @@ function copyDayModal(ws, d) {
   const plan = state.plans[ws]; const list = sortedDay(plan, d);
   if (!list.length) { showToast('Bu günde kopyalanacak görev yok.', 'error'); return; }
   const m = openModal({ title: 'Hangi güne kopyalayalım?', sheet: true, body: el('div', { class: 'chips' }, DAY_NAMES.map((n, i) => i === d ? null : el('button', { type: 'button', class: 'chip big', text: n, onClick: () => {
-    list.forEach(s => plan.sessions.push(Object.assign({}, s, { id: uid(), day: i, done: false, links: clone(s.links || []), applied: [], order: nextOrder(plan) })));
+    list.forEach(s => plan.sessions.push(Object.assign({}, s, { id: uid(), day: i, done: false, links: clone(s.links || []), applied: [], unlinked: undefined, histDone: undefined, order: nextOrder(plan) })));
     ui.selDay = i; m.close(); changed(); showToast(`${list.length} görev ${n} gününe kopyalandı`, 'success');
   } }))), buttons: [{ label: 'Vazgeç' }] });
 }
@@ -2311,10 +2341,13 @@ function taskSheet(ws, sess, day) {
     if (isNew) plan.sessions.push(Object.assign({ id: uid(), done: false, applied: [], order: nextOrder(plan) }, f));
     else {
       const t = plan.sessions.find(x => x.id === sess.id); const moved = t.day !== f.day;
-      const had = t.done && (t.applied || []).length;   /* işaretliyken bağlantı değişirse eski ilerleme geri alınır, yenisi eklenir */
-      if (had) lkUndo(t, state.books);
+      /* işaretliyken bağlantı değişirse eski ilerleme geri alınır, yenisi eklenir; geçmiş (histDone) görevde bağlantı değişirse bayrak kalkar ve yeni bağlantı bir kez işlenir */
+      const linksChanged = JSON.stringify(t.links || []) !== JSON.stringify(links);
+      const redo = t.done && (!t.histDone || linksChanged);
+      if (redo && !t.histDone) lkUndo(t, state.books, state.plans);
       Object.assign(t, f); delete t.bookId; delete t.itemId; delete t.unlinked;
-      if (had) lkCheck(t, state.books);
+      if (linksChanged) delete t.histDone;
+      if (redo) lkCheck(t, state.books, state.plans);
       if (moved) t.order = nextOrder(plan);
     }
     ui.selDay = f.day; changed(); showToast(isNew ? 'Görev eklendi ✔' : 'Kaydedildi ✔', 'success');
@@ -2522,7 +2555,7 @@ function pendLine(b, it) {
   const p = lkPending(state.plans, b.id, it.id, addDays); if (!p.length) return null;
   const tot = p.reduce((a, x) => a + x.amount, 0);
   const days = p.slice(0, 3).map(x => `${fmtDate(x.date, { weekday: 'short', day: 'numeric', month: 'short' })} (${x.amount})`).join(', ');
-  return el('div', { class: 'pendline', text: `⏳ Bekleyen görev: ${days}${p.length > 3 ? ` +${p.length - 3}` : ''} · toplam ${tot} ${unitText(it)}`.trim() });
+  return el('div', { class: 'pendline', text: `⏳ Bekleyen görev: ${days}${p.length > 3 ? ` +${p.length - 3}` : ''} · toplam ${tot} ${lkIsKonu(it) ? 'görev' : unitText(it)}`.trim() });
 }
 function bookSheetReadonly(b) {
   const bp = bookProgress(b), st = subjectState(b.subjectId);
@@ -2575,7 +2608,8 @@ function testCountsModal(b) {
       const v = parseInt(inp.value, 10); if (!(v >= 1)) return; const t = Math.min(9999, v);
       const wasDone = it.done >= it.total, wasTest = it.unit === 'test';
       if (wasTest && t === it.total) return;
-      it.done = wasTest ? Math.min(it.done, t) : (wasDone ? t : 0); it.unit = 'test'; it.total = t; lkTouch(it); n++;
+      const pend = lkPending(state.plans, b.id, it.id, ws => ws).length;   /* konu→test: bekleyen görevi varsa 0'dan başla, yoksa ve bitmişse tamamı */
+      it.done = wasTest ? Math.min(it.done, t) : (wasDone && !pend ? t : 0); it.unit = 'test'; it.total = t; lkTouch(it); n++;
     });
     changed(); showToast(n ? `${n} konunun test sayısı kaydedildi ✔` : 'Değişiklik yok', n ? 'success' : 'info');
   } }] });
@@ -2695,6 +2729,7 @@ function pasteModal(ws) {
         const k = typeof w?.weekStart === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(w.weekStart) ? weekStartKey(parseKey(w.weekStart)) : null;
         if (!k) { errs.push({ line: i + 1, text: String(w?.label || ''), msg: 'Hafta tarihi okunamadı' }); return; }
         const n = normalizePlanSessions(w.sessions); if (obj.placeholderTimes === true) n.sessions.forEach(s => { s.start = ''; });
+        n.sessions.forEach(s => { if (!s.links.length && s.subjectId) s.links = lkMatch(s, state.books.filter(b => b.subjectId === s.subjectId)).links; });
         n.errors.forEach(e => errs.push({ line: i + 1, text: `${w.label || k}: ${e.text}`, msg: e.msg }));
         wk.push({ weekStart: k, label: String(w.label || ''), note: typeof w.note === 'string' ? w.note.slice(0, 300) : '', sessions: n.sessions });
       });
