@@ -163,6 +163,11 @@ h1{font-size:24px}
 .dpill{position:relative}.dpill .dhico{position:absolute;top:4px;right:6px;font-size:13px;line-height:1}
 .dhband{border:2px dashed var(--accent);border-radius:14px;padding:12px 14px;margin:0 0 10px;background:var(--surface);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .dhband.off{border-color:var(--warn);background:var(--warn-bg)}.dhrow{display:flex;gap:10px;align-items:center;width:100%}.dhemoji{font-size:24px;line-height:1;flex:none}.dhband .dhbtn{min-height:44px}
+.chip-moved{display:inline-block;font-size:13px;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--warn-bg);color:var(--text);border:1px solid var(--warn);margin-top:4px}
+.btn.yapamadim{margin-top:8px;min-height:44px}
+.fillbanner{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}.fillbanner .btn{min-height:44px}
+.fillday{margin:14px 0 6px;font-size:16px}.fillrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--border);border-left:8px solid var(--sc,var(--muted));border-radius:14px;padding:10px;margin-bottom:8px;background:var(--surface)}
+.fillinfo{flex:1 1 200px;min-width:0}.fillbtns{display:flex;gap:8px;flex-wrap:wrap}.fillbtns .btn{min-height:44px}.vpost{font-weight:600;margin:6px 0 0}
 .dhafter{font-size:14px;font-weight:600;color:var(--muted);margin:10px 2px 6px}.dhwarn{font-size:13px;color:var(--warn);font-weight:600;overflow-wrap:anywhere;margin-top:2px}
 .dhnow{border:2px solid var(--accent);background:var(--surface2)}.dhnow b{overflow-wrap:anywhere}.dhgone{margin-top:0}
 .dpill.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
@@ -644,6 +649,173 @@ function dhClash(slots, start, durationMin) {
 /* aynı gün çakışma var mı (düzenlerken ignoreId hariç)? çakışan slotu döndürür */
 const dhConflict = (slots, day, start, end, ignoreId) => slots.find(s => s.id !== ignoreId && s.day === day && dhMin(start) < dhMin(s.end) && dhMin(end) > dhMin(s.start)) || null;
 /* ===== DERSHANE-PURE-END ===== */
+/* ===== PLANNER-PURE-BEGIN: "Yapamadım", kayma ve otomatik doldurma saf fonksiyonları (DOM/state kullanmaz; node birim testleri bu bloğu ayıklar) =====
+   plans = { 'YYYY-MM-DD'(pazartesi): { sessions:[{id,day:0..6,durationMin,subjectId,done,links,...}] } }
+   ctx   = { today, cap(date)→dk, coef(subjectId)→katsayı, prio(session)→öncelik, nowIso, lastDate, horizonWeeks }   (kapasite/katsayı dışarıdan gelir) */
+const plP2 = n => String(n).padStart(2, '0');
+const plKey = d => d.getFullYear() + '-' + plP2(d.getMonth() + 1) + '-' + plP2(d.getDate());
+const plParse = k => { const [y, m, d] = String(k).split('-').map(Number); return new Date(y, m - 1, d); };
+const plAdd = (k, n) => { const d = plParse(k); d.setDate(d.getDate() + n); return plKey(d); };   /* yerel tarih: yaz/kış saati güvenli */
+const plIdx = k => (plParse(k).getDay() + 6) % 7;
+const plWs = k => plAdd(k, -plIdx(k));
+const plDur = s => Math.max(1, Number(s && s.durationMin) || 40);
+const plKeyOk = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k));
+/* o günün görevleri (plan dizisi sırasıyla) */
+function plDay(plans, date) {
+  const p = plans && plans[plWs(date)], i = plIdx(date);
+  return p && Array.isArray(p.sessions) ? p.sessions.filter(s => s.day === i) : [];
+}
+/* günün toplam yükü (dk); exceptId verilen görev sayılmaz */
+function dayLoadMin(plans, date, exceptId) { let t = 0; for (const s of plDay(plans, date)) if (s.id !== exceptId) t += plDur(s); return t; }
+/* fromDate'ten SONRAKİ en uygun gün: önce aynı hafta, sonra en çok 3 hafta ilerisi; geçmişe asla; kapasitesi ≤0 atlanır.
+   Her haftada görevin SIĞDIĞI günler arasında yük/kapasite oranı en düşük olan (eşitlikte en erken); hiçbir haftada sığmazsa en az taşan gün. {date, fits, ratio} | null */
+function pickBestDay(task, fromDate, plans, ctx) {
+  ctx = ctx || {}; const cap = ctx.cap || (() => 0), today = ctx.today || fromDate;
+  const s0 = plAdd(fromDate, 1), start = s0 < today ? today : s0;
+  const end = plAdd(plWs(start), 6 + 7 * (ctx.horizonWeeks == null ? 3 : ctx.horizonWeeks));
+  const dur = plDur(task), id = task && task.id; let over = null;
+  /* hafta hafta bak: önce o haftada görevin sığdığı en boş gün; hiçbiri yoksa sonraki hafta */
+  for (let wk = plWs(start); wk <= end; wk = plAdd(wk, 7)) {
+    let fit = null;
+    for (let i = 0; i < 7; i++) {
+      const d = plAdd(wk, i); if (d < start || d > end) continue;
+      if (ctx.lastDate && d > ctx.lastDate) break;
+      const c = cap(d); if (!(c > 0)) continue;
+      const load = dayLoadMin(plans, d, id);
+      if (load + dur <= c) { const r = load / c; if (!fit || r < fit.ratio) fit = { date: d, fits: true, ratio: r }; }
+      else { const r = (load + dur) / c; if (!over || r < over.ratio) over = { date: d, fits: false, ratio: r }; }
+    }
+    if (fit) return fit;
+  }
+  return over;
+}
+/* değişikliği uygula, taşan günün görevlerini kaydır. change: {type:'ekle'|'sil'|'tasi'|'miktar'|'duzenle', ...}
+   ekle {date, session:{id,…}} · sil {sessionId} · tasi {sessionId, toDate} · miktar {sessionId, linkIndex, amount, durationMin?} · duzenle {sessionId, fields:{title,durationMin,start}}
+   → { plans(yeni kopya), moved:[{sessionId,fromDate,toDate}] (kayanlar), primary:{…}|null (tasi'nın kendisi), overflow (dk), touched:[haftalar], error } */
+function planShift(plans, change, ctx) {
+  ctx = ctx || {}; const today = ctx.today || '0000-00-00', cap = ctx.cap || (() => Infinity), coef = ctx.coef || (() => 1), prio = ctx.prio || (() => 0);
+  const out = JSON.parse(JSON.stringify(plans || {}));
+  const res = { plans: out, moved: [], primary: null, overflow: 0, touched: [], error: null };
+  const c = change || {};
+  const touch = ws => { if (!res.touched.includes(ws)) res.touched.push(ws); };
+  const find = id => { for (const ws of Object.keys(out)) { const p = out[ws]; if (!p || !Array.isArray(p.sessions)) continue; const i = p.sessions.findIndex(s => s.id === id); if (i >= 0) return { ws, p, i, s: p.sessions[i] }; } return null; };
+  const ensure = ws => { if (!out[ws]) out[ws] = { weekStart: ws, source: 'manual', createdAt: ctx.nowIso || '', note: '', dayNotes: ['', '', '', '', '', '', ''], sessions: [] }; if (!Array.isArray(out[ws].sessions)) out[ws].sessions = []; return out[ws]; };
+  const nextOrd = p => Math.max(-1, ...p.sessions.map((s, i) => Number.isFinite(s.order) ? s.order : i)) + 1;
+  const place = (s, date) => { const p = ensure(plWs(date)); s.day = plIdx(date); s.order = nextOrd(p); p.sessions.push(s); touch(plWs(date)); };
+  const fail = e => { res.error = e; res.plans = JSON.parse(JSON.stringify(plans || {})); res.moved = []; res.primary = null; res.touched = []; return res; };
+  let date = null, protect = null;
+  switch (c.type) {
+    case 'ekle': {
+      const ns = c.session; if (!ns || typeof ns !== 'object' || !ns.id || !plKeyOk(c.date)) return fail('gecersiz');
+      if (find(ns.id)) return res;   /* aynı görev zaten var: tekrar uygulamak bir şey değiştirmez */
+      const s = Object.assign({ done: false, links: [], applied: [], start: '', durationMin: 40 }, JSON.parse(JSON.stringify(ns)));
+      place(s, c.date); date = c.date; protect = s.id; break;
+    }
+    case 'sil': {
+      const f = find(c.sessionId); if (!f) return fail('yok');
+      f.p.sessions.splice(f.i, 1); touch(f.ws); break;
+    }
+    case 'tasi': {
+      const f = find(c.sessionId); if (!f) return fail('yok'); if (f.s.done) return fail('bitti');
+      if (!plKeyOk(c.toDate) || c.toDate < today) return fail('gecmis');
+      const from = plAdd(f.ws, f.s.day);
+      if (from !== c.toDate) {
+        f.p.sessions.splice(f.i, 1); touch(f.ws);
+        f.s.moved = { from, at: ctx.nowIso || '' }; f.s.start = '';
+        place(f.s, c.toDate); res.primary = { sessionId: f.s.id, fromDate: from, toDate: c.toDate };
+      }
+      date = c.toDate; protect = f.s.id; break;
+    }
+    case 'miktar': {
+      const f = find(c.sessionId); if (!f) return fail('yok'); if (f.s.done) return fail('bitti');
+      const l = (f.s.links || [])[c.linkIndex]; if (!l) return fail('yok');
+      l.amount = Math.min(9999, Math.max(1, Math.round(Number(c.amount) || 1)));
+      if (Number.isFinite(c.durationMin) && c.durationMin > 0) f.s.durationMin = Math.min(600, Math.round(c.durationMin));
+      touch(f.ws); date = plAdd(f.ws, f.s.day); protect = f.s.id; break;
+    }
+    case 'duzenle': {
+      const f = find(c.sessionId); if (!f) return fail('yok'); const fl = c.fields || {};
+      if (typeof fl.title === 'string') f.s.title = fl.title.slice(0, 160);
+      if (Number.isFinite(fl.durationMin) && fl.durationMin > 0) f.s.durationMin = Math.min(600, Math.round(fl.durationMin));
+      if (typeof fl.start === 'string') f.s.start = fl.start;
+      touch(f.ws); date = plAdd(f.ws, f.s.day); protect = f.s.id; break;
+    }
+    default: return fail('tur');
+  }
+  /* taşan günde: önce katsayısı düşük derslerin, sonra düşük öncelikli konuların görevi kayar; eklenen/düzenlenen görev, biten görev ve dersi olmayan (deneme) görev kaymaz */
+  const overDays = new Set();
+  if (date && date >= today) {
+    overDays.add(date);
+    for (let guard = 0; guard < 500; guard++) {
+      if (dayLoadMin(out, date) <= cap(date)) break;
+      const list = plDay(out, date), arr = out[plWs(date)].sessions;
+      const cands = list.filter(s => s.id !== protect && !s.done && s.subjectId);
+      if (!cands.length) break;
+      const pos = s => Number.isFinite(s.order) ? s.order : arr.indexOf(s);
+      cands.sort((a, b) => (coef(a.subjectId) - coef(b.subjectId)) || (prio(a) - prio(b)) || (pos(b) - pos(a)) || (a.id < b.id ? -1 : 1));
+      const s = cands[0], pick = pickBestDay(s, date, out, ctx); if (!pick) break;
+      arr.splice(arr.indexOf(s), 1); touch(plWs(date));
+      s.moved = { from: date, at: ctx.nowIso || '' }; s.start = '';
+      place(s, pick.date); res.moved.push({ sessionId: s.id, fromDate: date, toDate: pick.date });
+      if (!pick.fits) overDays.add(pick.date);
+    }
+    overDays.forEach(d => { const c2 = cap(d); if (Number.isFinite(c2)) res.overflow += Math.max(0, dayLoadMin(out, d) - c2); });
+  }
+  return res;
+}
+/* bitmemiş bölümlerden haftanın boş kapasitesini dolduracak ÖNERİler (uygulamaz).
+   lgsData: { coef:{dersId:katsayı}, avgQ:{lgsKonuId:ortalama soru} } · books: [{id,title,subjectId,archived,items:[{id,title,unit,total,done,lgsTopicId}]}]
+   → { proposals:[{id,date,day,subjectId,durationMin,title,lgsTopicId,links,reason,score}], free:{tarih:kalan dk} } */
+function suggestFill(plans, weekStart, books, lgsData, ctx) {
+  ctx = ctx || {}; lgsData = lgsData || {}; const today = ctx.today || weekStart, cap = ctx.cap || (() => 0), DUR = 40;
+  const coefOf = sid => { const v = lgsData.coef && lgsData.coef[sid]; return Number.isFinite(v) && v > 0 ? v : 1; };
+  const avgOf = tid => { const v = tid && lgsData.avgQ ? lgsData.avgQ[tid] : 0; return Number.isFinite(v) && v > 0 ? v : 0; };
+  const days = []; const free = {};
+  for (let i = 0; i < 7; i++) { const d = plAdd(weekStart, i); if (d < today || (ctx.lastDate && d > ctx.lastDate)) continue; const c = cap(d); if (!(c > 0)) continue; free[d] = c - dayLoadMin(plans, d); days.push(d); }
+  const out = { proposals: [], free };
+  if (!days.length) return out;
+  /* zaten planlı (yapılmamış, bugünden sonrası) miktarlar tekrar önerilmesin; haftadaki dersler */
+  const pend = {}, covered = new Set(), byDate = {};
+  const addLinks = (date, links) => { (byDate[date] = byDate[date] || new Set()); (links || []).forEach(l => byDate[date].add(l.itemId)); };
+  Object.keys(plans || {}).forEach(ws => { const p = plans[ws]; if (!p || !Array.isArray(p.sessions)) return; p.sessions.forEach(s => {
+    const d = plAdd(ws, s.day);
+    if (d >= today && !s.done) (s.links || []).forEach(l => { pend[l.itemId] = (pend[l.itemId] || 0) + (l.amount || 0); });
+    if (d >= plAdd(weekStart, -1) && d <= plAdd(weekStart, 7)) addLinks(d, s.links);
+    if (ws === weekStart && s.subjectId) covered.add(s.subjectId);
+  }); });
+  const cands = [];
+  (books || []).forEach(b => { if (b.archived || !b.subjectId) return; (b.items || []).forEach(it => {
+    if (!(it.total > 0)) return; const rem = it.total - (it.done || 0) - (pend[it.id] || 0); if (rem <= 0) return;
+    const frac = Math.min(1, Math.max(0, 1 - (it.done || 0) / it.total)), coef = coefOf(b.subjectId), avg = avgOf(it.lgsTopicId);
+    cands.push({ b, it, sid: b.subjectId, coef, frac, avg, score: coef * frac * (avg > 0 ? 1 + avg / 10 : 1), rem, step: it.unit === 'sayfa' ? Math.min(20, rem) : 1, used: 0 });
+  }); });
+  cands.sort((a, b) => (b.score - a.score) || (a.b.title < b.b.title ? -1 : a.b.title > b.b.title ? 1 : 0) || (a.it.title < b.it.title ? -1 : a.it.title > b.it.title ? 1 : 0) || (a.it.id < b.it.id ? -1 : 1));
+  const loadOf = d => cap(d) - free[d];
+  const adj = (d, itemId) => [plAdd(d, -1), d, plAdd(d, 1)].some(x => byDate[x] && byDate[x].has(itemId));
+  const tryPlace = c => {
+    if (c.rem - c.used * c.step < 1) return false;
+    const order = days.filter(d => free[d] >= DUR && !adj(d, c.it.id)).sort((a, b) => (loadOf(a) / cap(a)) - (loadOf(b) / cap(b)) || (a < b ? -1 : 1));
+    if (!order.length) return false;
+    const d = order[0], amt = Math.min(c.step, c.rem - c.used * c.step);
+    c.used++; free[d] -= DUR; addLinks(d, [{ itemId: c.it.id }]); covered.add(c.sid);
+    const extra = c.it.unit === 'sayfa' ? ` (${amt} sayfa)` : '';
+    out.proposals.push({ id: 'pf' + out.proposals.length, date: d, day: plIdx(d), subjectId: c.sid, durationMin: DUR, title: c.it.title + ' — ' + c.b.title + extra, lgsTopicId: c.it.lgsTopicId || null,
+      links: [{ bookId: c.b.id, itemId: c.it.id, amount: amt }], reason: `Katsayısı ${c.coef}, %${Math.round(c.frac * 100)} kaldı` + (c.avg > 0 ? `, LGS'de ortalama ${Math.round(c.avg * 10) / 10} soru` : ''), score: Math.round(c.score * 1000) / 1000 });
+    return true;
+  };
+  /* 1) bitmemiş bölümü olan her ders haftada en az bir görev (haftada henüz görevi olmayanlar, en yüksek puanlı ders önce) */
+  const bySubj = new Map(); cands.forEach(c => { if (!bySubj.has(c.sid)) bySubj.set(c.sid, []); bySubj.get(c.sid).push(c); });
+  [...bySubj.entries()].filter(([sid]) => !covered.has(sid)).sort((a, b) => b[1][0].score - a[1][0].score || (a[0] < b[0] ? -1 : 1)).forEach(([, list]) => { for (const c of list) if (tryPlace(c)) break; });
+  /* 2) kalan boşluğu puana göre doldur; aynı bölüm her yerleştirmede %40 değer kaybeder */
+  for (let guard = 0; guard < 400; guard++) {
+    if (!days.some(d => free[d] >= DUR)) break;
+    const order = cands.map((c, i) => ({ c, i, e: c.score * Math.pow(0.6, c.used) })).sort((a, b) => (b.e - a.e) || (a.i - b.i));
+    if (!order.some(o => tryPlace(o.c))) break;
+  }
+  out.proposals.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));   /* sıralama kararlı: aynı günde yerleştirme sırası kalır */
+  return out;
+}
+/* ===== PLANNER-PURE-END ===== */
 /* ===== LINKS-PURE-BEGIN: görev↔kitap bağlantısı saf fonksiyonları (DOM/state kullanmaz; node birim testleri bu bloğu ayıklar) ===== */
 const lkLower = s => String(s ?? '').toLocaleLowerCase('tr-TR');
 const lkKey = s => lkLower(s).replace(/[\s\p{P}\p{S}]+/gu, '');
@@ -923,7 +1095,7 @@ function migrateState(s) {
   for (const k of Object.keys(m.plans)) {
     const p = m.plans[k];
     if (!p || typeof p !== 'object') { delete m.plans[k]; continue; }
-    p.weekStart = p.weekStart || k; p.sessions = (Array.isArray(p.sessions) ? p.sessions : []).filter(x => x && Number.isInteger(x.day) && x.day >= 0 && x.day <= 6).map(x => { x.id = x.id || uid(); x.durationMin = Math.max(1, Number(x.durationMin) || 40); x.start = x.start || ''; x.title = String(x.title || ''); x.subjectId = x.subjectId || ''; x.done = !!x.done; if (x.order != null && !Number.isFinite(x.order)) delete x.order; linkMigrate(x, m.books, !(s.meta && s.meta.linksMigrated)); return x; });
+    p.weekStart = p.weekStart || k; p.sessions = (Array.isArray(p.sessions) ? p.sessions : []).filter(x => x && Number.isInteger(x.day) && x.day >= 0 && x.day <= 6).map(x => { x.id = x.id || uid(); x.durationMin = Math.max(1, Number(x.durationMin) || 40); x.start = x.start || ''; x.title = String(x.title || ''); x.subjectId = x.subjectId || ''; x.done = !!x.done; if (x.moved != null && !(x.moved && typeof x.moved === 'object' && plKeyOk(x.moved.from))) delete x.moved; else if (x.moved) x.moved = { from: x.moved.from, at: String(x.moved.at || '') }; if (x.order != null && !Number.isFinite(x.order)) delete x.order; linkMigrate(x, m.books, !(s.meta && s.meta.linksMigrated)); return x; });
     p.note = typeof p.note === 'string' ? p.note : '';
     if (!Array.isArray(p.dayNotes)) { const r = splitWeekNote(p.note); p.dayNotes = r.notes; p.note = r.rest; }
     p.dayNotes = [0, 1, 2, 3, 4, 5, 6].map(i => String(p.dayNotes[i] ?? '').slice(0, 200));
@@ -1306,6 +1478,8 @@ async function afterWipe(cloud) {
 
 /* ---- Veli sayfası ---- */
 function dayInfo(key) { const ws = weekStartKey(parseKey(key)); const d = daysBetween(ws, key); const list = sortedDay(state.plans[ws], d); return { ws, d, list, done: list.filter(s => s.done).length }; }
+/* bu hafta (pazartesi–pazar) içindeki günlerden ertelenen görev sayısı (başka haftaya taşınanlar dahil) */
+function postponedCount(ws) { const end = addDays(ws, 6); let n = 0; Object.values(state.plans).forEach(p => (p.sessions || []).forEach(s => { if (s.moved && s.moved.from >= ws && s.moved.from <= end) n++; })); return n; }
 function weekSoFar() { const l = (state.plans[weekStartKey(new Date())]?.sessions || []).filter(x => x.day <= todayIdx()); return { n: l.length, done: l.filter(x => x.done).length }; }
 function reportText() {
   const t = todayKey(), di = dayInfo(t), days = daysToExam(), sofar = weekSoFar();
@@ -1373,6 +1547,7 @@ function viewVeli(root) {
   }
   const sf = weekSoFar();
   wk.appendChild(bars); wk.appendChild(el('p', { class: 'small muted', text: pn.n ? `Bu hafta: ${pn.done}/${pn.n} · Bugüne kadar: ${sf.done}/${sf.n}` : 'Bu hafta için program yok.' }));
+  { const n = postponedCount(ws); if (n) wk.appendChild(el('p', { class: 'vpost', text: 'Ertelenen görevler: ' + n })); }
   page.appendChild(wk);
   // derslere göre
   const bySubj = new Map(); (state.plans[ws]?.sessions || []).forEach(s => { const o = bySubj.get(s.subjectId || '') || { n: 0, d: 0 }; o.n++; if (s.done) o.d++; bySubj.set(s.subjectId || '', o); });
@@ -1574,6 +1749,100 @@ function ensurePlan(ws, source = 'manual') {
 const dershaneSlotsFor = key => dhSlotsFor(state.dershane, key);
 const dayCapacityMin = key => dhCapacity(state.dershane, dayBudgets(), key);
 const currentDershane = now => dhCurrent(state.dershane, now || new Date());
+/* ---- Yapamadım / otomatik doldurma: state'e bağlı ince sarmalayıcılar (asıl iş PLANNER-PURE bloğunda) ---- */
+function plCtx() {
+  const years = selectedYears(), cc = {}, pc = {}; let last = examDateStr(); if (!last || last < todayKey()) last = null;
+  const lsOf = sid => { const st = sid ? subjectState(sid) : null; return st && st.lgsSubjectId ? lgsSubject(st.lgsSubjectId) : null; };
+  return { today: todayKey(), cap: dayCapacityMin, lastDate: last, nowIso: new Date().toISOString(),
+    coef: sid => { if (!(sid in cc)) { const ls = lsOf(sid); cc[sid] = ls ? ls.coefficient : 1; } return cc[sid]; },
+    prio: s => { if (!s.lgsTopicId) return 0; if (!(s.id in pc)) { const ls = lsOf(s.subjectId), t = ls && ls.topics.find(x => x.id === s.lgsTopicId); pc[s.id] = t ? priorityScore(t, ls, years) : 0; } return pc[s.id]; } };
+}
+function fillData() {
+  const years = selectedYears(), coef = {}, avgQ = {};
+  state.subjects.forEach(st => { const ls = st.lgsSubjectId ? lgsSubject(st.lgsSubjectId) : null; coef[st.id] = ls ? ls.coefficient : 1; if (ls) ls.topics.forEach(t => { const w = topicWeight(t, years); if (w > 0) avgQ[t.id] = w; }); });
+  return { coef, avgQ };
+}
+const DAY_DAT = ["Pazartesi'ye", "Salı'ya", "Çarşamba'ya", "Perşembe'ye", "Cuma'ya", "Cumartesi'ye", "Pazar'a"];
+function dayWhere(date) {
+  const w = Math.round(daysBetween(weekStartKey(new Date()), plWs(date)) / 7), i = plIdx(date);
+  return w <= 0 ? DAY_DAT[i] : w === 1 ? 'Gelecek hafta ' + DAY_DAT[i] : w + ' hafta sonra ' + DAY_DAT[i];
+}
+/* gün boşaldı/hafifledi mi? (bugün ve sonrası, kapasitesi olan, yükü kapasitenin üçte birinden az) */
+function dayIsLight(date) { if (date < todayKey()) return false; const c = dayCapacityMin(date); return c > 0 && dayLoadMin(state.plans, date) / c < 0.34; }
+function noteLight(date) { if (dayIsLight(date)) ui.fillHint = { ws: plWs(date), date }; }
+function yapamadim(ws, s) {
+  if (s.done) return;
+  const from = addDays(ws, s.day), ctx = plCtx();
+  const pick = pickBestDay(s, from, state.plans, ctx);
+  if (!pick) { showToast('Önümüzdeki haftalarda boş bir gün bulamadım.', 'error'); return; }
+  const oldPlan = state.plans[ws], oldIdx = oldPlan.sessions.indexOf(s);
+  const snap = { idx: oldIdx, day: s.day, order: s.order, start: s.start, moved: s.moved };
+  const nws = plWs(pick.date), np = ensurePlan(nws);
+  oldPlan.sessions.splice(oldIdx, 1);
+  s.moved = { from, at: ctx.nowIso }; s.start = ''; s.day = plIdx(pick.date); s.order = nextOrder(np); np.sessions.push(s);
+  noteLight(from);
+  changed();
+  const where = dayWhere(pick.date), why = !pick.fits ? '(her gün dolu, en az dolu gün)' : nws === ws ? '(haftanın en boş günü)' : '(en boş gün)';
+  showToast(subjShort(s.subjectId) + ' görevi ' + where + ' taşındı ' + why, 'info', { label: 'Geri al', onClick: () => {
+    const cur = state.plans[nws]; if (cur) cur.sessions = cur.sessions.filter(x => x !== s);
+    const op = ensurePlan(ws); s.day = snap.day; s.start = snap.start;
+    if (snap.order === undefined) delete s.order; else s.order = snap.order;
+    if (snap.moved === undefined) delete s.moved; else s.moved = snap.moved;
+    op.sessions.splice(Math.min(snap.idx, op.sessions.length), 0, s);
+    if (ui.fillHint && ui.fillHint.ws === ws) ui.fillHint = null;
+    changed();
+  } });
+}
+/* ---- haftayı doldur: öneri önizlemesi (onaysız uygulanmaz) ---- */
+function openFillPreview(ws) {
+  if (isReader()) return;
+  const data = suggestFill(state.plans, ws, state.books, fillData(), plCtx());
+  const props = data.proposals.map(p => Object.assign({}, p, { id: uid() }));
+  if (!props.length) { showToast('Bu hafta eklenecek uygun bir bölüm bulamadım.', 'info'); return; }
+  const body = el('div', { class: 'fillprev' }); const open = new Set();
+  const today = todayKey(), dayOpts = [];
+  for (let i = 0; i < 7; i++) { const d = addDays(ws, i); if (d >= today && dayCapacityMin(d) > 0) dayOpts.push({ id: d, label: DAY_SHORT[i] + ' ' + parseKey(d).getDate() }); }
+  let apply = null;
+  const draw = () => {
+    body.replaceChildren();
+    body.appendChild(el('p', { class: 'small muted', text: 'Boş kalan zamanlara şunları önerdim. İstemediğini çıkarabilir, gününü değiştirebilirsin. Sen "Uygula" demeden programa eklenmez.' }));
+    if (!props.length) body.appendChild(el('p', { class: 'muted', text: 'Önerilen görev kalmadı.' }));
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(ws, i), list = props.filter(p => p.date === d); if (!list.length) continue;
+      body.appendChild(el('h4', { class: 'fillday', text: DAY_NAMES[i] + ', ' + fmtDate(d, { day: 'numeric', month: 'long' }) }));
+      list.forEach(p => {
+        body.appendChild(el('div', { class: 'fillrow', style: '--sc:' + subjectColor(p.subjectId), 'data-fid': p.id }, [
+          el('div', { class: 'fillinfo' }, [el('div', { class: 'ttitle', text: subjEmoji(p.subjectId) + ' ' + p.title }), el('div', { class: 'tsub', text: subjShort(p.subjectId) + ' · ' + p.durationMin + ' dk' }), el('div', { class: 'tsub', text: p.reason })]),
+          el('div', { class: 'fillbtns' }, [btn('Günü değiştir', () => { if (open.has(p.id)) open.delete(p.id); else open.add(p.id); draw(); }, 'sm'), btn('Çıkar', () => { props.splice(props.indexOf(p), 1); draw(); }, 'sm')])]));
+        if (open.has(p.id)) {
+          /* yalnız yeri olan günler (kendi günü her zaman): kapasite aşılmasın */
+          const opts = dayOpts.filter(o => o.id === p.date || dayCapacityMin(o.id) - dayLoadMin(state.plans, o.id) - props.filter(q => q !== p && q.date === o.id).reduce((a, q) => a + q.durationMin, 0) >= p.durationMin);
+          body.appendChild(chipStrip(opts, p.date, id => { p.date = id; open.delete(p.id); draw(); }, 'wrap'));
+        }
+      });
+    }
+    if (apply) apply.textContent = props.length ? 'Uygula (' + props.length + ' görev)' : 'Uygula';
+  };
+  const m = openModal({ title: '🧩 Haftayı doldur', sheet: true, body, buttons: [{ label: 'Vazgeç', onClick: () => { ui.fillHint = null; } }, { label: 'Uygula', cls: 'primary lg', onClick: () => {
+    if (!props.length) return true;
+    const ids = [];
+    props.slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0).forEach(p => {
+      const pl = ensurePlan(plWs(p.date)), id = uid(); ids.push([plWs(p.date), id]);
+      pl.sessions.push({ id, day: plIdx(p.date), start: '', durationMin: p.durationMin, subjectId: p.subjectId, lgsTopicId: p.lgsTopicId || null, links: clone(p.links), applied: [], title: p.title, reason: p.reason, source: 'doldur', done: false, order: nextOrder(pl) });
+    });
+    ui.fillHint = null; changed();
+    showToast(ids.length + ' görev programa eklendi', 'success', { label: 'Geri al', onClick: () => { ids.forEach(([w, id]) => { const pl = state.plans[w]; if (pl) pl.sessions = pl.sessions.filter(x => x.id !== id); }); changed(); } });
+  } }] });
+  apply = m.buttons[1]; draw();
+}
+function fillBanner(ws) {
+  const hint = ui.fillHint; if (!hint || hint.ws !== ws || isReader() || !dayIsLight(hint.date)) return null;
+  if (!suggestFill(state.plans, ws, state.books, fillData(), plCtx()).proposals.length) return null;
+  const nm = hint.date === todayKey() ? 'Bugün' : DAY_NAMES[plIdx(hint.date)], empty = dayLoadMin(state.plans, hint.date) === 0;
+  return el('div', { class: 'banner fillbanner no-print', role: 'status' }, [
+    el('b', { text: nm + ' ' + (empty ? 'boşaldı' : 'hafifledi') + '. Haftayı doldurmak ister misin?' }),
+    el('div', { class: 'row wrapflex' }, [btn('Haftayı doldur', () => openFillPreview(ws), 'primary sm'), btn('Şimdi değil', () => { ui.fillHint = null; rerender(true); }, 'sm')])]);
+}
 function dayBudgets() { return [0, 1, 2, 3, 4, 5, 6].map(d => Math.max(0, +state.profile.dailyMinutes[d] || 0)); }
 function dayTotals(plan) { const t = [0, 0, 0, 0, 0, 0, 0]; (plan?.sessions || []).forEach(s => { t[s.day] += s.durationMin; }); return t; }
 
@@ -2047,7 +2316,7 @@ function popMenu(anchor, items) {
 
 /* router + chrome */
 const todayIdx = () => (new Date().getDay() + 6) % 7;
-const ui = { programWeek: weekStartKey(new Date()), selDay: todayIdx(), preview: null, justDone: null, analysisSubject: 'all', analysisSort: { key: 'avg', dir: -1 }, analysisByYear: false, normalize: false, bookForm: { subjectId: '', title: '', count: '', topics: '', showTopics: false }, bookFormOpen: false, bookViewKey: '' };
+const ui = { fillHint: null, programWeek: weekStartKey(new Date()), selDay: todayIdx(), preview: null, justDone: null, analysisSubject: 'all', analysisSort: { key: 'avg', dir: -1 }, analysisByYear: false, normalize: false, bookForm: { subjectId: '', title: '', count: '', topics: '', showTopics: false }, bookFormOpen: false, bookViewKey: '' };
 const STATUS_LABEL = { done: 'Bitti', inProgress: 'Devam', notStarted: 'Başlanmadı' };
 const card = (title, kids, cls = '') => el('section', { class: 'card ' + cls }, [title ? el('h2', { text: title }) : null, kids]);
 const btn = (label, onClick, cls = '', extra) => el('button', Object.assign({ type: 'button', class: 'btn ' + cls, onClick }, extra || {}), label);
@@ -2222,6 +2491,7 @@ function viewProgram(root) {
       if (state.plans[ws]?.sessions.length && !(await confirmDialog('Bu haftanın mevcut görevlerinin üzerine yazılacak. Devam?'))) return;
       applyPlan(ws, pv.plan.source, pv.plan.sessions, ''); ui.preview = null; changed(); showToast('Program uygulandı', 'success');
     }, 'primary'), btn('Vazgeç', () => { ui.preview = null; rerender(true); })])]));
+  if (!pv) { const fb = fillBanner(ws); if (fb) page.appendChild(fb); }
   // 5 hafta menüsü
   page.appendChild(el('div', { class: 'row between wrapflex weekmenu no-print' }, [
     plan?.note ? el('span', { class: 'small muted grow', text: '📌 ' + plan.note }) : el('span', { class: 'grow' }),
@@ -2244,7 +2514,7 @@ const dhRange = s => dhStr(dhMin(s.start)) + ' – ' + dhStr(dhMin(s.end));
 function dershaneBand(k, readonly) {
   const all = dhSlotsAll(state.dershane, k); if (!all.length) return null;
   const off = dhGitmedi(state.dershane, k), isToday = k === todayKey();
-  const setEx = v => { if (readerGuard()) return; if (v) state.dershane.exceptions[k] = 'gitmedi'; else delete state.dershane.exceptions[k]; changed(); showToast(v ? 'Tamam, günü boş bıraktım.' : 'Dershane geri geldi.', 'info'); };
+  const setEx = v => { if (readerGuard()) return; if (v) state.dershane.exceptions[k] = 'gitmedi'; else delete state.dershane.exceptions[k]; if (v) noteLight(k); changed(); showToast(v ? 'Tamam, günü boş bıraktım.' : 'Dershane geri geldi.', 'info'); };
   const box = el('div', { class: 'dhband' + (off ? ' off' : ''), role: 'group', 'aria-label': 'Dershane' });
   box.appendChild(el('div', { class: 'dhrow' }, [el('span', { class: 'dhemoji', 'aria-hidden': 'true', text: '🏫' }),
     el('div', { class: 'grow' }, off
@@ -2297,6 +2567,8 @@ function taskCard(s, ws, readonly) {
     el('span', { class: 'temoji', text: subjEmoji(s.subjectId) }),
     el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: sub }), ...lts.slice(0, 2).map(t => el('div', { class: 'tsub tlink', text: '📚 ' + t })), lts.length > 2 ? el('div', { class: 'tsub tlink', text: `+${lts.length - 2} kitap daha` }) : null, s.reason ? el('div', { class: 'tsub', text: s.reason }) : null])]);
   const clash = s.start ? dhClash(dershaneSlotsFor(addDays(ws, s.day)), s.start, s.durationMin) : null;
+  if (s.moved && !s.done) c.querySelector('.tinfo').appendChild(el('span', { class: 'chip-moved', title: fmtDate(s.moved.from, { day: 'numeric', month: 'long' }) + ' gününden ertelendi', text: 'ertelendi' }));
+  if (!readonly && !s.done) c.querySelector('.tinfo').appendChild(el('button', { type: 'button', class: 'btn sm yapamadim', text: 'Yapamadım', onClick: e => { e.stopPropagation(); yapamadim(ws, s); } }));
   if (clash) c.querySelector('.tinfo').appendChild(el('div', { class: 'dhwarn', text: '🏫 Dershane saatine denk geliyor (' + dhRange(clash) + ')' }));
   if (!readonly) {
     const cb = el('button', { type: 'button', class: 'check' + (s.done ? ' on' : ''), role: 'checkbox', 'aria-checked': String(!!s.done), 'aria-label': 'Tamamlandı', text: s.done ? '✓' : '' });
@@ -2330,6 +2602,7 @@ function weekMenuItems(ws, d) {
     { label: '📆 Bu günü başka güne kopyala', fn: () => copyDayModal(ws, d) },
     { label: '🧹 Haftayı temizle', fn: async () => { if (state.plans[ws] && await confirmDialog('Bu haftanın tüm görevleri ve notları silinecek.', 'Temizle', true)) { delete state.plans[ws]; changed(); } } },
     { label: '📥 Program yükle', fn: () => pasteModal(ws) },
+    ...(isReader() ? [] : [{ label: '🧩 Haftayı doldur', fn: () => openFillPreview(ws) }]),
     { label: '✨ Otomatik program öner', fn: () => { const p = generateRulePlan(ws); if (!p.sessions.length) { showToast('Bu hafta için günlük süre yok veya aday konu kalmadı.', 'error'); return; } ui.preview = { weekStart: ws, plan: p, title: 'Otomatik öneri', summary: '', tips: [] }; rerender(true); } }];
   items.push({ label: '📤 Bugünün raporunu gönder', fn: shareReport });
   if (hasKey()) items.push({ label: '🤖 AI ile program öner', fn: () => aiWeekModal(ws) });
@@ -2418,7 +2691,7 @@ function taskSheet(ws, sess, day) {
     moveRow.append(up, down); refresh(); body.append(lab('Sırayı değiştir'), moveRow, hint);
     buttons.unshift({ label: '🗑 Sil', cls: 'danger', onClick: async () => {
       if (!(await confirmDialog('Bu görev silinecek.', 'Sil', true))) return false;
-      const p = state.plans[ws]; p.sessions = p.sessions.filter(x => x.id !== sess.id); changed();
+      const p = state.plans[ws]; p.sessions = p.sessions.filter(x => x.id !== sess.id); noteLight(addDays(ws, sess.day)); changed();
     } });
   }
   buttons.push({ label: 'Kaydet', cls: 'primary lg', onClick: () => {
@@ -2429,7 +2702,7 @@ function taskSheet(ws, sess, day) {
     const f = { day: d.day, start: normTime(d.start), durationMin: d.durationMin, subjectId: d.subjectId, links, lgsTopicId: firstIt?.lgsTopicId || keepTopic || null, title };
     if (isNew) plan.sessions.push(Object.assign({ id: uid(), done: false, applied: [], order: nextOrder(plan) }, f));
     else {
-      const t = plan.sessions.find(x => x.id === sess.id); const moved = t.day !== f.day;
+      const t = plan.sessions.find(x => x.id === sess.id); const moved = t.day !== f.day; if (moved) noteLight(addDays(ws, t.day));
       /* işaretliyken bağlantı değişirse eski ilerleme geri alınır, yenisi eklenir; geçmiş (histDone) görevde bağlantı değişirse bayrak kalkar ve yeni bağlantı bir kez işlenir */
       const linksChanged = JSON.stringify(t.links || []) !== JSON.stringify(links);
       const redo = t.done && (!t.histDone || linksChanged);
