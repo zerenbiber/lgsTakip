@@ -229,6 +229,26 @@ h1{font-size:24px}
 .counter .cnt{min-width:96px;font-size:17px;font-weight:600;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 .counter input{width:96px}
 .rowedit .w-full{flex:1 1 100%}
+/* Faz B: görev↔kitap bağlantısı */
+.tlink{color:var(--text);opacity:.85}
+.linkcard{border:1px solid var(--border);background:var(--surface2);border-radius:14px;padding:12px;margin:6px 0 10px}
+.linkcard .lk-head{align-items:flex-start;gap:10px}
+.linkcard .counter{margin-top:8px;justify-content:center}
+.itemopt{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;width:100%;min-height:52px;padding:8px 12px;margin:0 0 6px;border:1px solid var(--border);border-radius:12px;background:var(--surface);text-align:left;cursor:pointer;font-size:16px;color:var(--text)}
+.itemopt:hover{background:var(--surface2)}
+.itemopt .io-t{flex:1 1 140px;min-width:0;overflow-wrap:anywhere;font-weight:600}
+.itemopt .io-b{flex:1 1 100%}
+.pendline{flex:1 1 100%;font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.tocrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--border)}
+.tocrow .t-title{flex:1 1 100%}
+.tocrow .t-num{flex:0 0 96px;width:96px}
+.tocrow .t-unit{flex:0 0 110px;width:110px}
+.cntrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)}
+.cntrow .c-t{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.cntrow .c-n{flex:0 0 96px;width:96px;text-align:center}
+.unlk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--border)}
+.unlk .grow{flex:1 1 180px}
+.photobox{margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:12px}
 .det{border:1px solid var(--border);border-radius:14px;padding:4px 14px}
 .det summary,.card summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600}
 .subjrow{padding:6px 0;border-top:1px solid var(--border);flex-wrap:wrap}
@@ -572,6 +592,132 @@ const fmtNum = n => nf1.format(n);
 const fmtPct = f => '%' + nf1.format(f * 100);
 const trLower = s => String(s ?? '').toLocaleLowerCase('tr-TR');
 const normalizeTr = s => trLower(s).replace(/[\s\p{P}\p{S}]+/gu, '');
+/* ===== LINKS-PURE-BEGIN: görev↔kitap bağlantısı saf fonksiyonları (DOM/state kullanmaz; node birim testleri bu bloğu ayıklar) ===== */
+const lkLower = s => String(s ?? '').toLocaleLowerCase('tr-TR');
+const lkKey = s => lkLower(s).replace(/[\s\p{P}\p{S}]+/gu, '');
+/* başlık parçasını karşılaştırmaya hazırla: küçük harf, (bitir)/(geri) atılır, "Denk." → "Denklemler", sondaki "test" atılır */
+function lkClean(s) {
+  return lkLower(s).replace(/\s*\((?:bitir|geri)\)/g, ' ').replace(/(^|\s)denk\.?(?=\s|\(|$)/g, '$1denklemler').replace(/\s+/g, ' ').trim().replace(/\s+test$/, '').trim();
+}
+/* kitap adı takma adları: "Jett / Parla Paragraf 1" → tamamı, "Parla Paragraf 1", "Jett Paragraf 1" */
+function lkBookKeys(title) {
+  const t = String(title || ''); const keys = [lkKey(t)];
+  const parts = t.split('/').map(x => x.trim()).filter(Boolean);
+  if (parts.length === 2) { keys.push(lkKey(parts[1])); const w = parts[1].split(/\s+/); if (w.length > 1) keys.push(lkKey(parts[0] + ' ' + w.slice(1).join(' '))); }
+  return keys;
+}
+function lkFindBook(text, books) {
+  const k = lkKey(text); if (!k) return null;
+  const hit = books.filter(b => lkBookKeys(b.title).includes(k));
+  return hit.find(b => !b.archived) || hit[0] || null;
+}
+function lkFindItem(book, topic) {
+  const items = book.items || []; const tk = lkKey(topic);
+  if (tk) {
+    const ex = items.find(it => lkKey(lkClean(it.title)) === tk); if (ex) return ex;
+    if (tk.length >= 5) { const pre = items.filter(it => lkKey(lkClean(it.title)).startsWith(tk)); if (pre.length === 1) return pre[0]; }
+  }
+  return items.length === 1 ? items[0] : null;
+}
+/* "Konu — Kitap1 · Kitap2 test" başlığını ayrıştırıp görevin bağlantılarını üret. books = o dersin kitapları. */
+function lkMatch(sess, books) {
+  const t = String(sess?.title ?? '').trim();
+  const m = /\s[—–]\s/.exec(t);
+  const left = m ? t.slice(0, m.index) : '', right = m ? t.slice(m.index + m[0].length) : t;
+  const found = []; let sharedCount = null;
+  for (const raw of right.split(/\s*[·•]\s*/).map(x => x.trim()).filter(Boolean)) {
+    const c = lkClean(raw);
+    if (/^\d+$/.test(c)) { sharedCount = +c; continue; }
+    let b = lkFindBook(c, books), count = null;
+    if (!b) { const mm = /^(.*?)\s+(\d+)(?:'?(?:er|ar))?$/.exec(c); if (mm) { b = lkFindBook(mm[1], books); if (b) count = +mm[2]; } }
+    if (b && !found.some(f => f.book === b)) found.push({ book: b, count });
+  }
+  let topics = left.split(/\s*\+\s*/).map(lkClean).filter(Boolean);
+  if (!found.length && left) {   /* kitap adı sol tarafta olabilir: "Hız 36 Haftalık — Haftanın denemesi" */
+    const lk = lkKey(lkClean(left));
+    const cand = lk.length >= 6 ? books.filter(b => lkBookKeys(b.title).some(k => k === lk || k.startsWith(lk))) : [];
+    if (cand.length === 1) { found.push({ book: cand[0], count: null }); topics = []; }
+  }
+  const links = [];
+  const shared = sharedCount ?? (found.length ? found[found.length - 1].count : null);
+  for (const f of found) {
+    const amount = Math.max(1, Math.min(9999, f.count ?? shared ?? 1));
+    const parts = topics.length ? topics : [''];
+    for (const p of parts) {
+      const it = lkFindItem(f.book, p);
+      if (it && !links.some(l => l.bookId === f.book.id && l.itemId === it.id)) links.push({ bookId: f.book.id, itemId: it.id, amount });
+    }
+  }
+  return { links, books: found.length, topics: topics.length };
+}
+/* eski tek bookId/itemId alanlarını links'e çevir */
+function lkLegacy(s, books) {
+  if (!s || !s.bookId) return [];
+  const b = books.find(x => x.id === s.bookId); if (!b) return [];
+  const it = (s.itemId && b.items.find(x => x.id === s.itemId)) || (b.items.length === 1 ? b.items[0] : null);
+  return it ? [{ bookId: b.id, itemId: it.id, amount: 1 }] : [];
+}
+function lkSanitize(arr) {
+  return (Array.isArray(arr) ? arr : []).filter(l => l && typeof l === 'object' && l.bookId && l.itemId).map(l => ({ bookId: String(l.bookId), itemId: String(l.itemId), amount: Math.max(1, Math.min(9999, Math.round(Number(l.amount)) || 1)) }));
+}
+function lkTouch(it) { it.completedAt = it.done >= it.total ? (it.completedAt || new Date().toISOString()) : null; }
+/* görev işaretlendi: her bağlantı için min(total, done+amount) ekle; gerçekten eklenen miktar applied'e yazılır (çift sayım yok) */
+function lkCheck(s, books) {
+  if (Array.isArray(s.applied) && s.applied.length) return [];
+  const applied = [];
+  for (const l of s.links || []) {
+    const b = books.find(x => x.id === l.bookId), it = b && b.items.find(x => x.id === l.itemId);
+    if (!it) continue;
+    const add = Math.min(it.total, it.done + l.amount) - it.done;
+    if (add > 0) { it.done += add; lkTouch(it); applied.push({ bookId: l.bookId, itemId: l.itemId, amount: add }); }
+  }
+  s.applied = applied; return applied;
+}
+/* işaret kaldırıldı: applied kadar geri al */
+function lkUndo(s, books) {
+  const undone = [];
+  for (const a of s.applied || []) {
+    const b = books.find(x => x.id === a.bookId), it = b && b.items.find(x => x.id === a.itemId);
+    if (!it) continue;
+    const sub = Math.min(it.done, a.amount); it.done -= sub; lkTouch(it); if (sub) undone.push({ bookId: a.bookId, itemId: a.itemId, amount: sub });
+  }
+  s.applied = []; return undone;
+}
+/* bir bölüm için bekleyen (bitmemiş) görevler: [{ ws, day, date, amount }], tarihe göre */
+function lkPending(plans, bookId, itemId, addDaysFn) {
+  const out = [];
+  for (const ws of Object.keys(plans || {}).sort()) for (const s of plans[ws].sessions || []) {
+    if (s.done) continue;
+    const l = (s.links || []).find(x => x.bookId === bookId && x.itemId === itemId);
+    if (l) out.push({ ws, day: s.day, date: addDaysFn(ws, s.day), amount: l.amount, id: s.id });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+/* yapay zekâ içindekiler çıktısını temizle: [{ title, count|null, unit }] */
+function lkCleanToc(obj) {
+  const arr = Array.isArray(obj) ? obj : (obj && Array.isArray(obj.topics) ? obj.topics : []);
+  const out = [];
+  for (const r of arr) {
+    if (!r || typeof r !== 'object') continue;
+    const title = String(r.title ?? '').replace(/\s+/g, ' ').trim().slice(0, 100); if (!title) continue;
+    let count = Math.round(Number(r.count)); count = Number.isFinite(count) && count >= 1 ? Math.min(9999, count) : null;
+    let unit = ['test', 'sayfa', 'konu'].includes(r.unit) ? r.unit : (count ? 'test' : 'konu');
+    if (count == null) unit = 'konu'; else if (unit === 'konu') unit = 'test';
+    out.push({ title, count, unit });
+    if (out.length >= 200) break;
+  }
+  return out;
+}
+/* ikinci fotoğrafın konularını listeye kat: aynı başlık tekrar eklenmez; eksik sayı tamamlanır */
+function lkMergeToc(base, extra) {
+  const out = base.map(r => Object.assign({}, r));
+  for (const r of extra) {
+    const hit = out.find(x => lkKey(x.title) === lkKey(r.title));
+    if (!hit) out.push(Object.assign({}, r)); else if (hit.count == null && r.count != null) { hit.count = r.count; hit.unit = r.unit; }
+  }
+  return out;
+}
+/* ===== LINKS-PURE-END ===== */
 const debounce = (fn, ms) => { let t; const f = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; f.flush = () => { clearTimeout(t); fn(); }; return f; };
 function downloadJson(name, obj) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
@@ -661,6 +807,19 @@ function defaultState() {
     meta: { importTimesCleared: true }
   };
 }
+/* görevin links/applied alanlarını doğrula; links yoksa eski bookId/itemId'den, o da yoksa (bir kerelik göç) başlıktan üret. Göçte done olan görevlere ilerleme eklenmez (applied boş). */
+function linkMigrate(x, books, titleMatch) {
+  x.applied = lkSanitize(x.applied);
+  if (Array.isArray(x.links)) { x.links = lkSanitize(x.links); if (x.links.length) { delete x.unlinked; delete x.bookId; delete x.itemId; } return; }
+  let L = lkLegacy(x, books);
+  if (!L.length && titleMatch && x.subjectId) {
+    const sb = books.filter(b => b.subjectId === x.subjectId);
+    L = lkMatch(x, sb).links;
+    if (!L.length && !x.done) x.unlinked = true;
+  }
+  x.links = L; x.applied = [];
+  if (L.length) { delete x.bookId; delete x.itemId; }
+}
 function migrateState(s) {
   const base = defaultState();
   if (!s || typeof s !== 'object') return base;
@@ -682,13 +841,13 @@ function migrateState(s) {
   for (const k of Object.keys(m.plans)) {
     const p = m.plans[k];
     if (!p || typeof p !== 'object') { delete m.plans[k]; continue; }
-    p.weekStart = p.weekStart || k; p.sessions = (Array.isArray(p.sessions) ? p.sessions : []).filter(x => x && Number.isInteger(x.day) && x.day >= 0 && x.day <= 6).map(x => { x.id = x.id || uid(); x.durationMin = Math.max(1, Number(x.durationMin) || 40); x.start = x.start || ''; x.title = String(x.title || ''); x.subjectId = x.subjectId || ''; x.done = !!x.done; if (x.order != null && !Number.isFinite(x.order)) delete x.order; return x; });
+    p.weekStart = p.weekStart || k; p.sessions = (Array.isArray(p.sessions) ? p.sessions : []).filter(x => x && Number.isInteger(x.day) && x.day >= 0 && x.day <= 6).map(x => { x.id = x.id || uid(); x.durationMin = Math.max(1, Number(x.durationMin) || 40); x.start = x.start || ''; x.title = String(x.title || ''); x.subjectId = x.subjectId || ''; x.done = !!x.done; if (x.order != null && !Number.isFinite(x.order)) delete x.order; linkMigrate(x, m.books, !(s.meta && s.meta.linksMigrated)); return x; });
     p.note = typeof p.note === 'string' ? p.note : '';
     if (!Array.isArray(p.dayNotes)) { const r = splitWeekNote(p.note); p.dayNotes = r.notes; p.note = r.rest; }
     p.dayNotes = [0, 1, 2, 3, 4, 5, 6].map(i => String(p.dayNotes[i] ?? '').slice(0, 200));
   }
   if (!m.topicOverrides || typeof m.topicOverrides !== 'object') m.topicOverrides = {};
-  m.meta = Object.assign({}, s.meta || {});
+  m.meta = Object.assign({}, s.meta || {}); m.meta.linksMigrated = true;
   if (!m.meta.modifiedAt) m.meta.modifiedAt = '1970-01-01T00:00:00.000Z';
   if (!m.meta.importTimesCleared) {
     for (const p of Object.values(m.plans)) {
@@ -1069,7 +1228,7 @@ function reportText() {
   const t = todayKey(), di = dayInfo(t), days = daysToExam(), sofar = weekSoFar();
   const nm = heroName();
   const lines = [`📅 ${nm ? nm + ' · ' : ''}${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })} — ${di.list.length ? `${di.done}/${di.list.length} görev ✔` : 'bugün için program yok'}`];
-  di.list.forEach(s => { const b = s.bookId ? state.books.find(x => x.id === s.bookId) : null; lines.push(`${s.done ? '✅' : '⬜'} ${subjShort(s.subjectId)}: ${s.title || subjShort(s.subjectId)}${b ? ' — ' + b.title : ''}`); });
+  di.list.forEach(s => { const b = sessBook(s); lines.push(`${s.done ? '✅' : '⬜'} ${subjShort(s.subjectId)}: ${s.title || subjShort(s.subjectId)}${b ? ' — ' + b.title : ''}`); });
   lines.push(`Bu hafta (bugüne kadar): ${sofar.done}/${sofar.n}` + (days != null && days >= 0 ? ` · LGS'ye ${days} gün` : ''));
   return lines.join('\n');
 }
@@ -1096,7 +1255,7 @@ function viewVeli(root) {
     const note = state.plans[ws]?.dayNotes?.[di.d]; if (note) today.appendChild(el('p', { class: 'small muted', text: '📝 ' + note }));
     di.list.forEach(s => today.appendChild(el('div', { class: 'vtask' + (s.done ? ' isdone' : ''), style: `--sc:${s.subjectId ? subjectColor(s.subjectId) : 'var(--muted)'}` }, [
       el('span', { class: 'vmark', text: s.done ? '✅' : '⬜' }), el('span', { class: 'temoji', text: subjEmoji(s.subjectId) }),
-      el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: [subjShort(s.subjectId), s.bookId ? state.books.find(x => x.id === s.bookId)?.title : null, `${s.durationMin} dk`].filter(Boolean).join(' · ') })])])));
+      el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: [subjShort(s.subjectId), sessBook(s)?.title, `${s.durationMin} dk`].filter(Boolean).join(' · ') })])])));
   }
   page.appendChild(today);
   // dün
@@ -1328,7 +1487,7 @@ function generateRulePlan(ws) {
   const sessions = [];
   const offset = [0, 0, 0, 0, 0, 0, 0];
   if (budgets[6] >= 80) {
-    sessions.push({ id: uid(), day: 6, start: '10:00', durationMin: 80, subjectId: '', lgsTopicId: null, bookId: null, itemId: null, title: 'Deneme / karışık tekrar', done: false });
+    sessions.push({ id: uid(), day: 6, start: '10:00', durationMin: 80, subjectId: '', lgsTopicId: null, links: [], applied: [], title: 'Deneme / karışık tekrar', done: false });
     budgets[6] -= 80; offset[6] = 80;
   }
   const subs = activeLgsSubjects().map(({ st, ls }) => {
@@ -1352,17 +1511,17 @@ function generateRulePlan(ws) {
     const minUse = Math.min(...avail.map(c => uses[c.t.id] || 0));
     const c = avail.find(x => (uses[x.t.id] || 0) === minUse);
     uses[c.t.id] = (uses[c.t.id] || 0) + 1;
-    let bookId = null, itemId = null, title = (c.review ? 'Tekrar: ' : '') + c.t.name;
+    let bookId = null, itemId = null, amt = 1, title = (c.review ? 'Tekrar: ' : '') + c.t.name;
     const li = linkedItems(c.t.id).find(x => !itemComplete(x.item) && x.item.total - x.item.done - (alloc[x.item.id] || 0) > 0);
     if (li) {
       const rem = li.item.total - li.item.done - (alloc[li.item.id] || 0);
       const n = li.item.unit === 'konu' ? 0 : Math.min(li.item.unit === 'sayfa' ? 20 : 2, rem);
       alloc[li.item.id] = (alloc[li.item.id] || 0) + (n || 1);
-      bookId = li.book.id; itemId = li.item.id;
+      bookId = li.book.id; itemId = li.item.id; amt = n || 1;
       title += ` — ${li.book.title}` + (n ? ` (${n} ${li.item.unit})` : '');
     } else title += c.review ? ' — genel tekrar' : ' — konu çalışması';
     const base = d >= 5 ? 600 : 1020;
-    sessions.push({ id: uid(), day: d, start: timeStr(base + offset[d] + tUsed[d] + 10 * Math.floor(cnt[d] / 2)), durationMin: 40, subjectId: s.st.id, lgsTopicId: c.t.id, bookId, itemId, title, done: false });
+    sessions.push({ id: uid(), day: d, start: timeStr(base + offset[d] + tUsed[d] + 10 * Math.floor(cnt[d] / 2)), durationMin: 40, subjectId: s.st.id, lgsTopicId: c.t.id, links: bookId ? [{ bookId, itemId, amount: amt }] : [], applied: [], title, done: false });
     perDay[d][s.st.id] = (perDay[d][s.st.id] || 0) + 1; remaining[s.st.id]--; tUsed[d] += 40; cnt[d]++;
     return true;
   };
@@ -1436,7 +1595,7 @@ function parsePlanText(text) {
     const subj = matchSubject(subjText);
     if (!subj) { errors.push({ line: i + 1, text: line, msg: `Ders bulunamadı: "${subjText}"` }); return; }
     const topicId = matchTopic(subj.id, desc || subjText);
-    sessions.push({ id: uid(), day, start, durationMin: clamp(min, 10, 180), subjectId: subj.id, lgsTopicId: topicId, bookId: null, itemId: null, title: desc || subj.name, done: false });
+    sessions.push({ id: uid(), day, start, durationMin: clamp(min, 10, 180), subjectId: subj.id, lgsTopicId: topicId, links: [], applied: [], title: desc || subj.name, done: false });
   });
   return { sessions, errors };
 }
@@ -1459,7 +1618,7 @@ function normalizePlanSessions(raw) {
     const book = r.bookId ? state.books.find(b => b.id === r.bookId) : null;
     const item = book && r.itemId ? book.items.find(it => it.id === r.itemId) : null;
     const dm = Math.round(Number(r.durationMin ?? r.duration) || 40);
-    sessions.push({ id: uid(), day, start: normTime(r.start), durationMin: clamp(dm, 10, 180), subjectId: sid, lgsTopicId: topicId, bookId: book ? book.id : null, itemId: item ? item.id : null, title: String(r.title || (subj ? subj.name : 'Oturum')).slice(0, 160), done: false, reason: typeof r.reason === 'string' ? r.reason : '' });
+    sessions.push({ id: uid(), day, start: normTime(r.start), durationMin: clamp(dm, 10, 180), subjectId: sid, lgsTopicId: topicId, links: book && item ? [{ bookId: book.id, itemId: item.id, amount: 1 }] : [], applied: [], title: String(r.title || (subj ? subj.name : 'Oturum')).slice(0, 160), done: false, reason: typeof r.reason === 'string' ? r.reason : '' });
   });
   return { sessions, errors, dropped };
 }
@@ -1632,6 +1791,34 @@ async function aiRefreshData() {
   const v = validateLgsData(merged);
   if (!v.ok) throw new AiError('Birleştirilen veri geçersiz: ' + v.errors.join(' '), text);
   return { data: v.data, warnings: v.warnings, changeSummary: refresh.changeSummary, source: 'ai' };
+}
+const TOC_SCHEMA = { type: 'object', properties: { topics: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, count: { type: ['integer', 'null'] }, unit: { type: 'string', enum: ['test', 'sayfa', 'konu'] } }, required: ['title', 'count', 'unit'], additionalProperties: false } } }, required: ['topics'], additionalProperties: false };
+const SYS_TOC = `Sen bir okuma yardımcısısın. Sana verilen fotoğraf, Türkçe bir test kitabının (soru bankası) ya da ders kitabının İÇİNDEKİLER sayfasıdır. Görevin: her konu/bölüm başlığını ve o konudaki test sayısını okumak.
+Kurallar:
+- Yalnızca fotoğrafta gerçekten yazan başlıkları listele; uydurma, tahmin etme, eksik satırı kendin tamamlama.
+- Başlığı yazıldığı gibi, Türkçe karakterlerle ver; sayfa numarasını başlığa ekleme.
+- Bir başlığın yanında test sayısı yazıyorsa count olarak ver ve unit "test" olsun. Test sayısı yazmıyorsa count null, unit "konu" olsun.
+- Sayfa aralığını (örneğin 12-25) test sayısına ÇEVİRME. Yalnızca sayfa sayısı açıkça yazıyorsa unit "sayfa" ve count o sayı olabilir; emin değilsen count null yap.
+- Okunamayan satırı atla.
+- Yalnızca JSON döndür, başka metin yazma.`;
+/* fotoğraf → base64 (uzun kenar ≤1600px, JPEG q0.8); fotoğraf hiçbir yerde saklanmaz */
+async function photoToB64(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new AiError('Bu fotoğrafı açamadım. Başka bir fotoğraf dene.')); img.src = url; });
+    const sc = Math.min(1, 1600 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+    const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(img.naturalWidth * sc)); cv.height = Math.max(1, Math.round(img.naturalHeight * sc));
+    const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+    return cv.toDataURL('image/jpeg', 0.8).split(',')[1];
+  } finally { URL.revokeObjectURL(url); }
+}
+async function aiReadToc(b64s) {
+  const content = b64s.map(data => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }));
+  content.push({ type: 'text', text: 'Bu içindekiler sayfasındaki konu başlıklarını ve test sayılarını JSON olarak ver.' });
+  const text = await callClaude({ system: SYS_TOC, user: content, schema: TOC_SCHEMA, effort: 'low', maxTokens: 4000 });
+  let obj; try { obj = parseJsonLoose(text); } catch (e) { throw new AiError('Fotoğraftaki yazıyı okuyamadım. Daha net ve düz bir fotoğraf dene ya da konuları elle yaz.'); }
+  return lkCleanToc(obj);
 }
 async function aiTest() {
   await callClaude({ system: 'Kısa yanıt ver.', user: 'ping', effort: 'low', maxTokens: 16, lenient: true });
@@ -1972,13 +2159,26 @@ function noteRow(ws, d, plan, readonly) {
   };
   show(); return box;
 }
+/* ---- görev↔kitap bağlantısı: görünüm yardımcıları ---- */
+const bookById = id => state.books.find(b => b.id === id);
+function linkInfo(l) { const b = bookById(l.bookId); const it = b && b.items.find(x => x.id === l.itemId); return b && it ? { b, it } : null; }
+const unitText = it => UNIT_LABEL[it.unit] || '';
+/* "Kitap · Konu · N test" */
+function linkText(l) { const i = linkInfo(l); return i ? `${i.b.title} · ${i.it.title} · ${l.amount} ${unitText(i.it)}`.trim() : null; }
+const sessBook = s => { const l = (s.links || []).map(linkInfo).find(Boolean); return l ? l.b : (s.bookId ? bookById(s.bookId) : null); };
+/* işaretleyince gösterilecek ilerleme: "Olasılık 8/12 test" */
+function progressText(list) {
+  const parts = list.map(a => { const i = linkInfo(a); return i ? `${i.it.title} ${i.it.done}/${i.it.total} ${unitText(i.it)}`.trim() : null; }).filter(Boolean);
+  return parts.slice(0, 2).join(' · ') + (parts.length > 2 ? ` · +${parts.length - 2}` : '');
+}
 function taskCard(s, ws, readonly) {
   const col = s.subjectId ? subjectColor(s.subjectId) : 'var(--muted)';
-  const b = s.bookId ? state.books.find(x => x.id === s.bookId) : null;
+  const b = !(s.links || []).length && s.bookId ? bookById(s.bookId) : null;
   const sub = [s.start || null, subjShort(s.subjectId), b?.title, `${s.durationMin} dk`].filter(Boolean).join(' · ');
+  const lts = (s.links || []).map(linkText).filter(Boolean);
   const c = el('div', { class: 'task' + (s.done ? ' isdone' : '') + (ui.justDone === s.id ? ' pop' : ''), style: `--sc:${col}`, 'data-id': s.id }, [
     el('span', { class: 'temoji', text: subjEmoji(s.subjectId) }),
-    el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: sub }), s.reason ? el('div', { class: 'tsub', text: s.reason }) : null])]);
+    el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: sub }), ...lts.slice(0, 2).map(t => el('div', { class: 'tsub tlink', text: '📚 ' + t })), lts.length > 2 ? el('div', { class: 'tsub tlink', text: `+${lts.length - 2} kitap daha` }) : null, s.reason ? el('div', { class: 'tsub', text: s.reason }) : null])]);
   if (!readonly) {
     const cb = el('button', { type: 'button', class: 'check' + (s.done ? ' on' : ''), role: 'checkbox', 'aria-checked': String(!!s.done), 'aria-label': 'Tamamlandı', text: s.done ? '✓' : '' });
     cb.addEventListener('click', e => { e.stopPropagation(); toggleDone(ws, s); });
@@ -1990,17 +2190,21 @@ function taskCard(s, ws, readonly) {
 function toggleDone(ws, s) {
   s.done = !s.done; ui.justDone = s.done ? s.id : null;
   const list = sortedDay(state.plans[ws], s.day);
+  let prog = '';
+  if (s.done) { const ap = lkCheck(s, state.books); ap.forEach(a => recordActivity(a.bookId, a.itemId, a.amount)); prog = progressText(ap); }
+  else lkUndo(s, state.books).forEach(a => recordActivity(a.bookId, a.itemId, -a.amount));
   changed(); ui.justDone = null;
   if (!s.done) return;
-  if (list.length && list.every(x => x.done)) showToast(ws === weekStartKey(new Date()) && s.day === todayIdx() ? 'Bugünkü programı bitirdin! 🌟' : 'Bu günün programını bitirdin! 🌟', 'success');
-  else showToast(praiseWord() + '! 🎉', 'success');
+  const tail = prog ? ' · ' + prog : '';
+  if (list.length && list.every(x => x.done)) showToast((ws === weekStartKey(new Date()) && s.day === todayIdx() ? 'Bugünkü programı bitirdin! 🌟' : 'Bu günün programını bitirdin! 🌟') + tail, 'success');
+  else showToast(praiseWord() + '! 🎉' + tail, 'success');
 }
 function weekMenuItems(ws, d) {
   const items = [
     { label: '📋 Geçen haftayı kopyala', fn: async () => {
       const prev = state.plans[addDays(ws, -7)]; if (!prev || !prev.sessions.length) { showToast('Geçen haftada görev yok.', 'error'); return; }
       if (state.plans[ws]?.sessions.length && !(await confirmDialog('Bu haftanın görevlerinin üzerine yazılacak. Devam?'))) return;
-      const p = applyPlan(ws, 'manual', prev.sessions.map(s => Object.assign({}, s, { id: uid(), done: false })), '');
+      const p = applyPlan(ws, 'manual', prev.sessions.map(s => Object.assign({}, s, { id: uid(), done: false, links: clone(s.links || []), applied: [] })), '');
       p.dayNotes = p.dayNotes.map((n, i) => n || prev.dayNotes?.[i] || '');
       changed(); showToast('Geçen haftanın programı kopyalandı', 'success');
     } },
@@ -2017,7 +2221,7 @@ function copyDayModal(ws, d) {
   const plan = state.plans[ws]; const list = sortedDay(plan, d);
   if (!list.length) { showToast('Bu günde kopyalanacak görev yok.', 'error'); return; }
   const m = openModal({ title: 'Hangi güne kopyalayalım?', sheet: true, body: el('div', { class: 'chips' }, DAY_NAMES.map((n, i) => i === d ? null : el('button', { type: 'button', class: 'chip big', text: n, onClick: () => {
-    list.forEach(s => plan.sessions.push(Object.assign({}, s, { id: uid(), day: i, done: false, order: nextOrder(plan) })));
+    list.forEach(s => plan.sessions.push(Object.assign({}, s, { id: uid(), day: i, done: false, links: clone(s.links || []), applied: [], order: nextOrder(plan) })));
     ui.selDay = i; m.close(); changed(); showToast(`${list.length} görev ${n} gününe kopyalandı`, 'success');
   } }))), buttons: [{ label: 'Vazgeç' }] });
 }
@@ -2027,28 +2231,54 @@ const DUR_CHIPS = [20, 30, 40, 60, 90];
 function taskSheet(ws, sess, day) {
   const isNew = !sess;
   const first = visibleSubjects()[0];
-  const d = sess ? { day: sess.day, start: sess.start || '', durationMin: sess.durationMin, subjectId: sess.subjectId || '', bookId: sess.bookId || null, itemId: sess.itemId || null, title: sess.title || '' }
-    : { day, start: '', durationMin: 40, subjectId: first ? first.id : '', bookId: null, itemId: null, title: '' };
+  const d = sess ? { day: sess.day, start: sess.start || '', durationMin: sess.durationMin, subjectId: sess.subjectId || '', links: clone(sess.links || []), title: sess.title || '' }
+    : { day, start: '', durationMin: 40, subjectId: first ? first.id : '', links: [], title: '' };
   const subs = visibleSubjects(); const own = sess && sess.subjectId && !subs.some(s => s.id === sess.subjectId) ? subjectState(sess.subjectId) : null;
   const body = el('div', { class: 'sheetbody' });
   const lab = t => el('div', { class: 'flabel', text: t });
-  const bookBox = el('div'), itemBox = el('div');
-  function drawBooks() {
-    bookBox.replaceChildren(); itemBox.replaceChildren();
-    if (!d.subjectId) return;
-    let books = subjectBooks(d.subjectId);
-    const cur = d.bookId ? state.books.find(x => x.id === d.bookId) : null;
-    if (cur && !books.includes(cur)) books = [...books, cur];
-    bookBox.appendChild(lab('Hangi kitap? (istersen)'));
-    bookBox.appendChild(chipStrip([{ id: '', label: 'Kitapsız' }, ...books.map(b => ({ id: b.id, label: b.title, emoji: '📚' }))], d.bookId || '', id => { d.bookId = id || null; d.itemId = null; drawBooks(); }));
-    if (!books.length) bookBox.appendChild(el('p', { class: 'small muted', text: 'Bu derse henüz kitap eklenmemiş. Kitaplarım bölümünden ekleyebilirsin.' }));
-    const b = d.bookId ? state.books.find(x => x.id === d.bookId) : null;
-    if (b && b.items.length >= 2) {
-      itemBox.appendChild(lab('Hangi bölüm?'));
-      itemBox.appendChild(chipStrip([{ id: '', label: 'Bölüm yok' }, ...b.items.map(it => ({ id: it.id, label: it.title }))], d.itemId || '', id => { d.itemId = id || null; }));
+  /* kitap bağlantıları: ders → kitap çipleri → konu/bölüm listesi → miktar adımlayıcı; birden çok bağlantı */
+  const linkBox = el('div'); const pk = { open: !d.links.length, bookId: null };
+  const addLink = (bk, it) => {
+    const ex = d.links.find(l => l.bookId === bk.id && l.itemId === it.id);
+    if (ex) ex.amount = Math.min(9999, ex.amount + 1); else d.links.push({ bookId: bk.id, itemId: it.id, amount: 1 });
+    pk.open = false; pk.bookId = null; drawLinks();
+  };
+  function linkCard(l, i) {
+    const inf = linkInfo(l);
+    const c = el('div', { class: 'linkcard' }, el('div', { class: 'row between lk-head' }, [
+      el('div', { class: 'grow' }, inf ? [el('b', { text: inf.it.title }), el('div', { class: 'small muted', text: `${inf.b.title} · şu an ${inf.it.done}/${inf.it.total} ${unitText(inf.it)}` })] : el('span', { class: 'muted', text: 'Bu kitap ya da bölüm silinmiş' })),
+      btn('Kaldır', () => { d.links.splice(i, 1); if (!d.links.length) pk.open = true; drawLinks(); }, 'sm')]));
+    if (inf) {
+      const cnt = el('span', { class: 'cnt', 'aria-live': 'polite', text: `${l.amount} ${unitText(inf.it)}` });
+      const set = n => { l.amount = clamp(n, 1, Math.max(1, inf.it.total)); cnt.textContent = `${l.amount} ${unitText(inf.it)}`; };
+      c.appendChild(el('div', { class: 'counter lk-count' }, [el('button', { type: 'button', class: 'btn step', 'aria-label': 'Azalt', text: '−', onClick: () => set(l.amount - 1) }), cnt, el('button', { type: 'button', class: 'btn step', 'aria-label': 'Artır', text: '+', onClick: () => set(l.amount + 1) })]));
     }
+    return c;
   }
-  const subjStrip = chipStrip(subjectOptions(own ? [...subs, own] : subs, []).concat([{ id: '', label: 'Deneme', emoji: '🧪' }]), d.subjectId, id => { d.subjectId = id; d.bookId = null; d.itemId = null; drawBooks(); });
+  function drawLinks() {
+    linkBox.replaceChildren(); if (!d.subjectId) return;
+    const books = subjectBooks(d.subjectId);
+    linkBox.appendChild(lab('Hangi kitap? (istersen)'));
+    d.links.forEach((l, i) => linkBox.appendChild(linkCard(l, i)));
+    if (!books.length) { if (!d.links.length) linkBox.appendChild(el('p', { class: 'small muted', text: 'Bu derse henüz kitap eklenmemiş. Kitaplarım bölümünden ekleyebilirsin.' })); return; }
+    if (!pk.open) { linkBox.appendChild(btn(d.links.length ? '＋ Başka kitap ekle' : '＋ Kitap seç', () => { pk.open = true; drawLinks(); }, 'sm addlink')); return; }
+    const itemBox = el('div');
+    const showItems = bid => {
+      itemBox.replaceChildren(); const bk = bookById(bid); if (!bk) return;
+      if (!bk.items.length) { itemBox.appendChild(el('p', { class: 'small muted', text: 'Bu kitapta henüz bölüm yok. Kitaplarım bölümünden ekleyebilirsin.' })); return; }
+      itemBox.appendChild(lab('Hangi konu / bölüm?'));
+      bk.items.forEach(it => itemBox.appendChild(el('button', { type: 'button', class: 'itemopt', onClick: () => addLink(bk, it) }, [
+        el('span', { class: 'io-t', text: it.title }), el('span', { class: 'io-n small muted', text: `${it.done}/${it.total} ${unitText(it)}` }), el('div', { class: 'io-b' }, progBar(itemFraction(it), null, 'mini'))])));
+    };
+    linkBox.appendChild(chipStrip(books.map(bk => ({ id: bk.id, label: bk.title, emoji: '📚' })), pk.bookId || '', id => {
+      pk.bookId = id; const bk = bookById(id);
+      if (bk && bk.items.length === 1) { addLink(bk, bk.items[0]); return; }
+      showItems(id);
+    }));
+    linkBox.appendChild(itemBox); if (pk.bookId) showItems(pk.bookId);
+    if (d.links.length) linkBox.appendChild(btn('Vazgeç', () => { pk.open = false; pk.bookId = null; drawLinks(); }, 'sm'));
+  }
+  const subjStrip = chipStrip(subjectOptions(own ? [...subs, own] : subs, []).concat([{ id: '', label: 'Deneme', emoji: '🧪' }]), d.subjectId, id => { d.subjectId = id; d.links = []; pk.open = true; pk.bookId = null; drawLinks(); });
   const titleIn = el('input', { type: 'text', value: d.title, placeholder: 'Örn. Olasılık — 2 test', maxlength: '160', 'aria-label': 'Ne yapacaksın?' });
   titleIn.addEventListener('input', () => { d.title = titleIn.value; });
   const durs = [...new Set([...DUR_CHIPS, d.durationMin])].sort((a, b) => a - b);
@@ -2056,9 +2286,9 @@ function taskSheet(ws, sess, day) {
   const timeIn = el('input', { type: 'time', value: d.start, 'aria-label': 'Saat' }); timeIn.addEventListener('input', () => { d.start = timeIn.value; });
   const ws0 = ws;
   const dayStrip = chipStrip(DAY_NAMES.map((n, i) => ({ id: i, label: `${DAY_SHORT[i]} ${parseKey(addDays(ws0, i)).getDate()}` })), d.day, id => { d.day = id; }, 'wrap');
-  body.append(lab('Hangi ders?'), subjStrip, bookBox, itemBox, lab('Ne yapacaksın?'), titleIn, lab('Kaç dakika?'), durStrip,
+  body.append(lab('Hangi ders?'), subjStrip, linkBox, lab('Ne yapacaksın?'), titleIn, lab('Kaç dakika?'), durStrip,
     lab('Saat (istersen)'), el('div', { class: 'row' }, [timeIn, btn('Saati sil', () => { timeIn.value = ''; d.start = ''; }, 'sm')]), lab('Hangi gün?'), dayStrip);
-  drawBooks();
+  drawLinks();
   const buttons = [{ label: 'Vazgeç' }];
   if (!isNew) {
     const moveRow = el('div', { class: 'row wrapflex', style: 'margin-top:14px' });
@@ -2074,13 +2304,19 @@ function taskSheet(ws, sess, day) {
   }
   buttons.push({ label: 'Kaydet', cls: 'primary lg', onClick: () => {
     const plan = ensurePlan(ws);
-    const b = d.subjectId && d.bookId ? state.books.find(x => x.id === d.bookId) : null;
-    const it = b && d.itemId ? b.items.find(x => x.id === d.itemId) : null;
-    const title = d.title.trim() || it?.title || b?.title || (d.subjectId ? subjectName(d.subjectId) : 'Deneme');
+    const links = clone(d.links.filter(linkInfo)); const firstIt = links.length ? linkInfo(links[0]).it : null;
+    const title = d.title.trim() || firstIt?.title || (d.subjectId ? subjectName(d.subjectId) : 'Deneme');
     const keepTopic = sess && sess.subjectId === d.subjectId ? sess.lgsTopicId : null;
-    const f = { day: d.day, start: normTime(d.start), durationMin: d.durationMin, subjectId: d.subjectId, bookId: b ? b.id : null, itemId: it ? it.id : null, lgsTopicId: it?.lgsTopicId || keepTopic || null, title };
-    if (isNew) plan.sessions.push(Object.assign({ id: uid(), done: false, order: nextOrder(plan) }, f));
-    else { const t = plan.sessions.find(x => x.id === sess.id); const moved = t.day !== f.day; Object.assign(t, f); if (moved) t.order = nextOrder(plan); }
+    const f = { day: d.day, start: normTime(d.start), durationMin: d.durationMin, subjectId: d.subjectId, links, lgsTopicId: firstIt?.lgsTopicId || keepTopic || null, title };
+    if (isNew) plan.sessions.push(Object.assign({ id: uid(), done: false, applied: [], order: nextOrder(plan) }, f));
+    else {
+      const t = plan.sessions.find(x => x.id === sess.id); const moved = t.day !== f.day;
+      const had = t.done && (t.applied || []).length;   /* işaretliyken bağlantı değişirse eski ilerleme geri alınır, yenisi eklenir */
+      if (had) lkUndo(t, state.books);
+      Object.assign(t, f); delete t.bookId; delete t.itemId; delete t.unlinked;
+      if (had) lkCheck(t, state.books);
+      if (moved) t.order = nextOrder(plan);
+    }
     ui.selDay = f.day; changed(); showToast(isNew ? 'Görev eklendi ✔' : 'Kaydedildi ✔', 'success');
   } });
   openModal({ title: isNew ? '➕ Görev ekle' : '✏️ Görevi düzenle', sheet: true, body, buttons });
@@ -2135,8 +2371,66 @@ function bookAddSection(fixedSubject, subjects, extras = []) {
     el('div', { class: 'flabel', text: 'Kitabın adı' }), nameIn,
     el('div', { class: 'flabel', text: 'Kaç test / bölüm var?' }), cntIn,
     el('button', { type: 'button', class: 'linkbtn', text: 'Konuları da yazmak ister misin?', onClick: () => { f.showTopics = !f.showTopics; topicsBox.classList.toggle('hidden', !f.showTopics); } }), topicsBox,
-    ...extras, addBtn, el('button', { type: 'button', class: 'btn', style: 'width:100%;margin-top:8px', text: 'Vazgeç', onClick: close }));
+    photoBox(f, fixedSubject, subjects), ...extras, addBtn, el('button', { type: 'button', class: 'btn', style: 'width:100%;margin-top:8px', text: 'Vazgeç', onClick: close }));
   return el('div', { class: 'addwrap' }, [openBtn, form]);
+}
+/* 📷 İçindekiler fotoğrafı: anahtar varsa kamera/galeri, yoksa Ayarlar'a yönlendirme */
+function photoBox(f, fixedSubject, subjects) {
+  const box = el('div', { class: 'photobox', 'data-photo': '1' });
+  if (!hasKey()) {
+    box.append(el('p', { class: 'small', text: '📷 Önce Ayarlar\'dan yapay zekâ anahtarını ekle; sonra içindekiler fotoğrafından konuları otomatik okuyabilirsin.' }), btn('🔑 Anahtar ekle', () => navigate('#ayarlar'), 'sm'));
+    return box;
+  }
+  const mkIn = cam => { const i = el('input', Object.assign({ type: 'file', accept: 'image/*', class: 'hidden', 'aria-label': cam ? 'Fotoğraf çek' : 'Galeriden fotoğraf seç' }, cam ? { capture: 'environment' } : {})); i.addEventListener('change', () => { const file = i.files && i.files[0]; i.value = ''; if (file) tocFromPhoto(file, f, fixedSubject, subjects); }); return i; };
+  const cam = mkIn(true), gal = mkIn(false);
+  box.append(el('div', { class: 'row wrapflex' }, [btn('📷 İçindekiler fotoğrafı', () => cam.click(), 'toc-cam'), btn('🖼 Galeriden seç', () => gal.click(), 'sm toc-gal')]), cam, gal,
+    el('p', { class: 'small muted', text: 'İçindekiler sayfasının fotoğrafını çek; konular ve test sayıları okunsun. Fotoğraf yalnızca yapay zekâya gönderilir, hiçbir yerde saklanmaz.' }));
+  return box;
+}
+function tocFromPhoto(file, f, fixedSubject, subjects) {
+  showToast('Fotoğraf okunuyor… biraz sürebilir ⏳', 'info');
+  runAi(null, async () => {
+    const rows = await aiReadToc([await photoToB64(file)]);
+    if (!rows.length) { showToast('Fotoğrafta konu bulamadım. Daha net bir fotoğraf dene ya da konuları elle yaz.', 'error'); return; }
+    tocModal(rows, f, fixedSubject, subjects);
+  });
+}
+/* okunan konuların düzenlenebilir önizlemesi; "Kitabı ekle" ile kitap oluşur */
+function tocModal(rows0, f, fixedSubject, subjects) {
+  let rows = rows0.map(r => Object.assign({}, r));
+  const list = el('div'); const sum = el('p', { class: 'small', style: 'font-weight:700' });
+  const nameIn = el('input', { type: 'text', value: f.title, placeholder: 'Örn. Altın Kural Soru Bankası', maxlength: '100', 'aria-label': 'Kitabın adı' }); nameIn.addEventListener('input', () => { f.title = nameIn.value; });
+  const upd = () => { const t = rows.filter(r => r.count && r.unit === 'test').reduce((a, r) => a + r.count, 0); sum.textContent = `${rows.length} konu · toplam ${t} test`; };
+  const draw = () => {
+    list.replaceChildren();
+    rows.forEach((r, i) => {
+      const ti = el('input', { type: 'text', class: 't-title', value: r.title, maxlength: '100', 'aria-label': 'Konu adı' }); ti.addEventListener('input', () => { r.title = ti.value; });
+      const us = el('select', { class: 't-unit', 'aria-label': 'Birim' }, ['test', 'sayfa', 'konu'].map(u => el('option', { value: u, text: u }))); us.value = r.unit;
+      const ni = el('input', { type: 'number', class: 't-num', min: '1', max: '9999', inputmode: 'numeric', value: r.count == null ? '' : String(r.count), placeholder: 'sayı', 'aria-label': 'Sayı' });
+      ni.addEventListener('input', () => { const n = parseInt(ni.value, 10); r.count = n >= 1 ? Math.min(9999, n) : null; if (r.count == null) r.unit = 'konu'; else if (r.unit === 'konu') r.unit = 'test'; us.value = r.unit; upd(); });
+      us.addEventListener('change', () => { r.unit = us.value; if (r.unit === 'konu') { r.count = null; ni.value = ''; } upd(); });
+      list.appendChild(el('div', { class: 'tocrow' }, [ti, ni, us, btn('Sil', () => { rows.splice(i, 1); draw(); }, 'sm danger')]));
+    });
+    upd();
+  };
+  const addPhoto = file => runAi(null, async () => { showToast('Fotoğraf okunuyor… ⏳', 'info'); const more = await aiReadToc([await photoToB64(file)]); rows = lkMergeToc(rows, more); draw(); showToast(`${more.length} konu daha okundu`, 'success'); });
+  const mkIn = cam => { const i = el('input', Object.assign({ type: 'file', accept: 'image/*', class: 'hidden', 'aria-label': cam ? 'Başka fotoğraf çek' : 'Galeriden başka fotoğraf' }, cam ? { capture: 'environment' } : {})); i.addEventListener('change', () => { const file = i.files && i.files[0]; i.value = ''; if (file) addPhoto(file); }); return i; };
+  const cam = mkIn(true), gal = mkIn(false);
+  let subjStrip = null; if (!fixedSubject) subjStrip = el('div', null, [el('div', { class: 'flabel', text: 'Hangi ders?' }), chipStrip(subjectOptions(subjects), f.subjectId, id => { f.subjectId = id; }, 'big')]);
+  const body = el('div', null, [el('p', { class: 'small muted', text: 'Okunanları kontrol et: adı ya da sayıyı değiştirebilir, yanlış satırı silebilirsin.' }), el('div', { class: 'flabel', text: 'Kitabın adı' }), nameIn, subjStrip, el('div', { class: 'flabel', text: 'Konular' }), list,
+    el('div', { class: 'row wrapflex', style: 'margin-top:8px' }, [btn('＋ Satır ekle', () => { rows.push({ title: '', count: null, unit: 'konu' }); draw(); const ins = list.querySelectorAll('.t-title'); if (ins.length) ins[ins.length - 1].focus(); }, 'sm'), btn('📷 Başka fotoğraf ekle', () => cam.click(), 'sm'), btn('🖼 Galeriden', () => gal.click(), 'sm')]), cam, gal, sum]);
+  draw();
+  openModal({ title: '📷 İçindekiler', sheet: true, body, buttons: [{ label: 'Vazgeç' }, { label: 'Kitabı ekle', cls: 'primary', onClick: () => {
+    const sid = f.subjectId; if (!sid) { showToast('Önce dersi seç 👆', 'error'); return false; }
+    const title = f.title.trim(); if (!title) { showToast('Kitabın adını yaz ✏️', 'error'); nameIn.focus(); return false; }
+    const clean = rows.map(r => ({ title: r.title.trim(), count: r.count, unit: r.unit })).filter(r => r.title);
+    if (!clean.length) { showToast('En az bir konu olmalı', 'error'); return false; }
+    const st = subjectState(sid); const lsx = st?.lgsSubjectId ? lgsSubject(st.lgsSubjectId) : null;
+    const items = clean.map(r => { const n = r.count >= 1 ? r.count : 0; return { id: uid(), title: r.title, lgsTopicId: lgsTopicFor(r.title, lsx ? lsx.topics : []), unit: n ? (r.unit === 'sayfa' ? 'sayfa' : 'test') : 'konu', total: n || 1, done: 0, completedAt: null }; });
+    state.books.push({ id: uid(), subjectId: sid, title, publisher: '', kind: 'karma', createdAt: new Date().toISOString(), archived: false, items });
+    f.title = ''; f.count = ''; f.topics = ''; ui.bookFormOpen = false;
+    changed(); showToast(`📚 ${items.length} konulu kitap ${subjShort(sid)} dersine eklendi`, 'success');
+  } }] });
 }
 const OTHER_ID = '__other';
 function viewBooks(root) {
@@ -2205,6 +2499,7 @@ function itemRow(b, it, redraw) {
     const on = it.done >= 1;
     row.appendChild(el('div', { class: 'ititle' + (on ? ' dn' : ''), text: it.title }));
     row.appendChild(el('button', { type: 'button', class: 'check' + (on ? ' on' : ''), role: 'checkbox', 'aria-checked': String(on), 'aria-label': it.title, text: on ? '✓' : '', onClick: () => setItemDone(b, it, on ? 0 : 1, redraw) }));
+    const pl0 = pendLine(b, it); if (pl0) row.appendChild(pl0);
     return row;
   }
   row.appendChild(el('div', { class: 'ititle', text: it.title }));
@@ -2219,7 +2514,15 @@ function itemRow(b, it, redraw) {
     el('button', { type: 'button', class: 'btn step', 'aria-label': 'Artır', text: '+', onClick: () => setItemDone(b, it, it.done + 1, redraw) }));
   row.appendChild(cnt);
   row.appendChild(el('div', { style: 'flex:1 1 100%' }, progBar(itemFraction(it), null, 'mini')));
+  const pl = pendLine(b, it); if (pl) row.appendChild(pl);
   return row;
+}
+/* bölüme bağlı, henüz bitmemiş görevler: hangi gün, kaç test */
+function pendLine(b, it) {
+  const p = lkPending(state.plans, b.id, it.id, addDays); if (!p.length) return null;
+  const tot = p.reduce((a, x) => a + x.amount, 0);
+  const days = p.slice(0, 3).map(x => `${fmtDate(x.date, { weekday: 'short', day: 'numeric', month: 'short' })} (${x.amount})`).join(', ');
+  return el('div', { class: 'pendline', text: `⏳ Bekleyen görev: ${days}${p.length > 3 ? ` +${p.length - 3}` : ''} · toplam ${tot} ${unitText(it)}`.trim() });
 }
 function bookSheetReadonly(b) {
   const bp = bookProgress(b), st = subjectState(b.subjectId);
@@ -2230,7 +2533,7 @@ function bookSheetReadonly(b) {
   b.items.forEach(it => body.appendChild(el('div', { class: 'irow' }, [
     el('div', { class: 'ititle' + (itemComplete(it) ? ' dn' : ''), text: (itemComplete(it) ? '✓ ' : '') + it.title }),
     el('b', { class: 'small', text: `${it.done} / ${it.total} ${UNIT_LABEL[it.unit] || ''}`.trim() }),
-    el('div', { style: 'flex:1 1 100%' }, progBar(itemFraction(it), null, 'mini'))])));
+    el('div', { style: 'flex:1 1 100%' }, progBar(itemFraction(it), null, 'mini')), pendLine(b, it)])));
   openModal({ title: `${subjEmoji(b.subjectId)} ${b.title}`, sheet: true, body, buttons: [{ label: 'Kapat', cls: 'primary' }] });
 }
 function bookSheet(b) {
@@ -2246,10 +2549,37 @@ function bookSheet(b) {
   draw();
   openModal({ title: `${subjEmoji(b.subjectId)} ${b.title}`, sheet: true, body, buttons: [
     { label: 'Kitabı sil', cls: 'danger', onClick: async () => { if (!(await confirmDialog(`"${b.title}" silinecek. Bu işlem geri alınamaz.`, 'Sil', true))) return false; state.books = state.books.filter(x => x.id !== b.id); changed(); } },
+    { label: '🔢 Test sayılarını gir', onClick: () => { setTimeout(() => testCountsModal(b), 0); } },
     { label: 'Kitabı düzenle', onClick: () => { setTimeout(() => bookEditModal(b), 0); } },
     { label: 'Kapat', cls: 'primary' }] });
 }
 
+function lgsTopicFor(title, topics) {
+  const nt = normalizeTr(title);
+  const tp = topics.find(t => normalizeTr(t.name) === nt) || topics.find(t => nt.includes(normalizeTr(t.name)));
+  return tp ? tp.id : null;
+}
+/* mevcut kitapta konu başına test sayılarını toplu gir */
+function testCountsModal(b) {
+  const sum = el('p', { class: 'small', style: 'font-weight:700' }); const pairs = [];
+  const upd = () => { const t = pairs.reduce((a, [it, inp]) => { const n = parseInt(inp.value, 10); return a + (n >= 1 ? Math.min(9999, n) : (it.unit === 'test' ? it.total : 0)); }, 0); sum.textContent = `Toplam: ${t} test`; };
+  const rows = b.items.map(it => {
+    const inp = el('input', { type: 'number', min: '1', max: '9999', inputmode: 'numeric', class: 'c-n', value: it.unit === 'test' ? String(it.total) : '', placeholder: 'kaç test?', 'aria-label': `${it.title} kaç test` });
+    inp.addEventListener('input', upd); pairs.push([it, inp]);
+    return el('div', { class: 'cntrow' }, [el('span', { class: 'c-t', text: it.title }), inp]);
+  });
+  const body = el('div', null, [el('p', { class: 'small muted', text: 'Her konuda kaç test olduğunu yaz. Boş bıraktığın konu olduğu gibi kalır.' }), ...rows, sum]); upd();
+  openModal({ title: `🔢 ${b.title} · test sayıları`, sheet: true, body, buttons: [{ label: 'Vazgeç' }, { label: 'Kaydet', cls: 'primary', onClick: () => {
+    let n = 0;
+    pairs.forEach(([it, inp]) => {
+      const v = parseInt(inp.value, 10); if (!(v >= 1)) return; const t = Math.min(9999, v);
+      const wasDone = it.done >= it.total, wasTest = it.unit === 'test';
+      if (wasTest && t === it.total) return;
+      it.done = wasTest ? Math.min(it.done, t) : (wasDone ? t : 0); it.unit = 'test'; it.total = t; lkTouch(it); n++;
+    });
+    changed(); showToast(n ? `${n} konunun test sayısı kaydedildi ✔` : 'Değişiklik yok', n ? 'success' : 'info');
+  } }] });
+}
 function parseBulk(text, topics) {
   const out = [];
   String(text || '').split(/\r?\n/).forEach(line => {
@@ -2259,9 +2589,7 @@ function parseBulk(text, topics) {
     let total = 1, unit = 'konu';
     if (parts[1]) { const n = parseInt(parts[1], 10); if (n >= 1) { total = n; unit = 'test'; } }
     if (parts[2] && UNIT_LABEL[trLower(parts[2])]) unit = trLower(parts[2]);
-    const nt = normalizeTr(title);
-    const tp = topics.find(t => normalizeTr(t.name) === nt) || topics.find(t => nt.includes(normalizeTr(t.name)));
-    out.push({ id: uid(), title, lgsTopicId: tp ? tp.id : null, unit, total, done: 0, completedAt: null });
+    out.push({ id: uid(), title, lgsTopicId: lgsTopicFor(title, topics), unit, total, done: 0, completedAt: null });
   });
   return out;
 }
@@ -2271,7 +2599,7 @@ function addTopicToWeek(topicId, subjectStateId, topicName) {
   let best = 0, bestRem = -Infinity;
   for (let d = 0; d < 7; d++) { const rem = budgets[d] - tot[d]; if (rem > bestRem) { bestRem = rem; best = d; } }
   const li = linkedItems(topicId).find(x => !itemComplete(x.item));
-  plan.sessions.push({ id: uid(), day: best, start: '', durationMin: 40, subjectId: subjectStateId, lgsTopicId: topicId, bookId: li?.book.id || null, itemId: li?.item.id || null, title: topicName + (li ? ' — ' + li.book.title : ''), done: false, order: nextOrder(plan) });
+  plan.sessions.push({ id: uid(), day: best, start: '', durationMin: 40, subjectId: subjectStateId, lgsTopicId: topicId, links: li ? [{ bookId: li.book.id, itemId: li.item.id, amount: 1 }] : [], applied: [], title: topicName + (li ? ' — ' + li.book.title : ''), done: false, order: nextOrder(plan) });
   changed(); showToast(`Bu haftanın programına eklendi (${DAY_NAMES[best]})`, 'success');
 }
 function applyLgsData(data, source) {
@@ -2583,6 +2911,12 @@ function renderWelcome() {
 /* ---- ayarlar ---- */
 let deferredInstall = null;
 const EMOJI_CHOICES = ['📘', '📖', '➗', '🔬', '🏛️', '🕌', '🔤', '🧪', '📐', '🎨', '🎵', '🌍', '💻', '⚽', '🧠', '✏️'];
+/* bir kerelik göçte bağlanamayan, henüz bitmemiş görevler */
+function unlinkedTasks() {
+  const out = [];
+  Object.keys(state.plans).sort().forEach(ws => state.plans[ws].sessions.forEach(s => { if (s.unlinked && !s.done && !(s.links || []).length) out.push({ ws, s }); }));
+  return out;
+}
 function viewSettings(root) {
   const page = el('div', { class: 'page wide' }); root.appendChild(page);
   page.appendChild(el('div', { class: 'row between', style: 'margin-bottom:10px' }, [el('h1', { class: 'ptitle', style: 'margin:0', text: '⚙ Ayarlar' }), btn('‹ Geri', () => navigate('#program'), 'sm')]));
@@ -2615,6 +2949,18 @@ function viewSettings(root) {
     el('div', { class: 'row wrapflex' }, [newEm, el('div', { class: 'grow' }, newName), newCol]),
     btn('Dersi ekle', () => { const name = newName.value.trim(); if (!name) { showToast('Ders adı gerekli', 'error'); return; }
       state.subjects.push({ id: uid(), name, shortName: name.slice(0, 12), emoji: newEm.value, color: newCol.value, lgsSubjectId: null, visible: true, order: Math.max(-1, ...state.subjects.map(x => x.order)) + 1 }); changed(); showToast('Ders eklendi', 'success'); }, 'sm primary')])));
+  // bağlanamayan görevler (bir kerelik göçten kalanlar)
+  const unl = unlinkedTasks();
+  if (unl.length && !isReader()) {
+    const shown = ui.unlkAll ? unl : unl.slice(0, 15);
+    g.appendChild(card('Bağlanamayan görevler', el('div', { class: 'stack' }, [
+      el('p', { class: 'small', text: `${unl.length} görevi bir kitaba bağlayamadım. Dokunup kitabı ve konuyu seçersen, görevi bitirince kitabın ilerlemesi de artar. Bağlamak istemediklerin için "Gerek yok" de.` }),
+      ...shown.map(({ ws, s }) => el('div', { class: 'unlk' }, [
+        el('div', { class: 'grow' }, [el('b', { text: s.title || subjShort(s.subjectId) }), el('div', { class: 'small muted', text: `${DAY_NAMES[s.day]}, ${fmtDate(addDays(ws, s.day), { day: 'numeric', month: 'short' })} · ${subjShort(s.subjectId)}` })]),
+        btn('Bağla', () => taskSheet(ws, s, s.day), 'sm primary'), btn('Gerek yok', () => { s.unlinked = false; changed(); }, 'sm')])),
+      unl.length > 15 ? btn(ui.unlkAll ? 'Daha az göster' : `Hepsini göster (${unl.length})`, () => { ui.unlkAll = !ui.unlkAll; rerender(true); }, 'sm') : null,
+      btn('Hepsi için "Gerek yok"', async () => { if (await confirmDialog(`${unl.length} görev listeden kalkacak. Görevler silinmez.`, 'Tamam')) { unl.forEach(({ s }) => { s.unlinked = false; }); changed(); } }, 'sm')]), 'edit-only'));
+  }
   // install
   const inst = el('div', { class: 'stack' }, [
     el('p', { class: 'small', text: 'Android (Chrome): menü → "Ana ekrana ekle" / "Uygulamayı yükle".' }),
