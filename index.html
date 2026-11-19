@@ -166,6 +166,9 @@ h1{font-size:24px}
 .chip-moved{display:inline-block;font-size:13px;font-weight:600;padding:2px 10px;border-radius:999px;background:var(--warn-bg);color:var(--text);border:1px solid var(--warn);margin-top:4px}
 .btn.yapamadim{margin-top:8px;min-height:44px}
 .fillbanner{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}.fillbanner .btn{min-height:44px}
+.propcard{border:2px solid var(--accent);margin:0 0 12px}.propcard h2{margin-top:0}.propline{margin:6px 0;overflow-wrap:anywhere}.propmoved{margin:4px 0 0;padding-left:20px}.propbtns{margin-top:10px}.propbtns .btn{min-height:48px;flex:1 1 140px}
+.proprow{min-width:0;overflow-wrap:anywhere;border:1px solid var(--border);border-radius:14px;padding:10px;margin:8px 0;background:var(--surface)}.propsum{font-weight:600;overflow-wrap:anywhere}.pchip{display:inline-block;max-width:100%;min-width:0;overflow-wrap:anywhere;font-size:14px;font-weight:600;padding:3px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface2)}.pchip.onaylandi{border-color:var(--ok);color:var(--ok)}.pchip.reddedildi,.pchip.eskidi,.pchip.geri{color:var(--muted)}
+.propsumbox{margin:14px 0 6px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px dashed var(--border);overflow-wrap:anywhere}.itemopt.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}.propform textarea{min-height:64px}
 .fillday{margin:14px 0 6px;font-size:16px}.fillrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--border);border-left:8px solid var(--sc,var(--muted));border-radius:14px;padding:10px;margin-bottom:8px;background:var(--surface)}
 .fillinfo{flex:1 1 200px;min-width:0}.fillbtns{display:flex;gap:8px;flex-wrap:wrap}.fillbtns .btn{min-height:44px}.vpost{font-weight:600;margin:6px 0 0}
 .dhafter{font-size:14px;font-weight:600;color:var(--muted);margin:10px 2px 6px}.dhwarn{font-size:13px;color:var(--warn);font-weight:600;overflow-wrap:anywhere;margin-top:2px}
@@ -816,6 +819,138 @@ function suggestFill(plans, weekStart, books, lgsData, ctx) {
   return out;
 }
 /* ===== PLANNER-PURE-END ===== */
+/* ===== PROPOSAL-PURE-BEGIN: veli önerileri saf fonksiyonları (DOM/state/ağ kullanmaz; node birim testleri bu bloğu ayıklar; PLANNER-PURE bloğunun pl* yardımcılarını kullanır) =====
+   öneri: { id, createdAt, kind:'ekle'|'sil'|'tasi'|'miktar'|'duzenle'|'gunnotu', payload, note(≤300), withdrawn? } · oneriler.json: { app, syncVersion:1, updatedAt, proposals:[…] }
+   karar durumu (veri.json içinde): proposalStatus = { [id]: { status:'onaylandi'|'reddedildi'|'eskidi', decidedAt, summary } }   Her şey GÜVENİLMEZ girdi: tür/aralık doğrulanır, kısaltılır. */
+const PR_KINDS = ['ekle', 'sil', 'tasi', 'miktar', 'duzenle', 'gunnotu'], PR_STATUSES = ['onaylandi', 'reddedildi', 'eskidi'];
+const PR_MAX = 60, PR_STATUS_MAX = 100, PR_NOTE_MAX = 300;
+const PR_ID = /^[A-Za-z0-9_-]{1,64}$/, PR_REF = /^[\w.-]{1,80}$/, PR_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const PR_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'], PR_DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+const prStr = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+const prInt = (v, lo, hi) => { if (typeof v !== 'number' || !Number.isFinite(v)) return null; const n = Math.round(v); return n >= lo && n <= hi ? n : null; };
+const prDateOk = k => typeof k === 'string' && plKeyOk(k) && plKey(plParse(k)) === k;
+const prDayLabel = k => { const d = plParse(k); return d.getDate() + ' ' + PR_MONTHS[d.getMonth()] + ' ' + PR_DAYS[plIdx(k)]; };
+/* tek öneriyi doğrula ve temizle: geçerliyse yeni (kısaltılmış) nesne, değilse null */
+function prValidate(p) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
+  if (typeof p.id !== 'string' || !PR_ID.test(p.id) || !PR_KINDS.includes(p.kind)) return null;
+  const pl = p.payload; if (!pl || typeof pl !== 'object' || Array.isArray(pl)) return null;
+  if (typeof p.createdAt !== 'string' || isNaN(Date.parse(p.createdAt))) return null;
+  const ref = v => typeof v === 'string' && PR_REF.test(v);
+  const c = {}; const label = prStr(pl.label, 120);
+  switch (p.kind) {
+    case 'ekle': {
+      if (!prDateOk(pl.date) || typeof pl.subjectId !== 'string' || (pl.subjectId && !PR_REF.test(pl.subjectId))) return null;
+      const dur = prInt(pl.durationMin, 1, 600); if (dur == null) return null;
+      const start = pl.start == null || pl.start === '' ? '' : (typeof pl.start === 'string' && PR_TIME.test(pl.start) ? pl.start : null); if (start === null) return null;
+      const links = [];
+      if (pl.links != null) { if (!Array.isArray(pl.links) || pl.links.length > 5) return null; for (const l of pl.links) { if (!l || typeof l !== 'object' || !ref(l.bookId) || !ref(l.itemId)) return null; const a = prInt(l.amount, 1, 9999); if (a == null) return null; links.push({ bookId: l.bookId, itemId: l.itemId, amount: a }); } }
+      const title = prStr(pl.title, 160).trim(); if (!title && !links.length) return null;
+      Object.assign(c, { date: pl.date, subjectId: pl.subjectId, title, durationMin: dur, start, links }); break;
+    }
+    case 'sil': if (!ref(pl.sessionId)) return null; Object.assign(c, { sessionId: pl.sessionId, label }); break;
+    case 'tasi': if (!ref(pl.sessionId) || !prDateOk(pl.toDate)) return null; Object.assign(c, { sessionId: pl.sessionId, toDate: pl.toDate, label }); break;
+    case 'miktar': {
+      if (!ref(pl.sessionId)) return null; const li = prInt(pl.linkIndex, 0, 9), a = prInt(pl.amount, 1, 9999); if (li == null || a == null) return null;
+      Object.assign(c, { sessionId: pl.sessionId, linkIndex: li, amount: a, label });
+      if (pl.durationMin != null) { const d = prInt(pl.durationMin, 1, 600); if (d == null) return null; c.durationMin = d; }
+      break;
+    }
+    case 'duzenle': {
+      if (!ref(pl.sessionId) || !pl.fields || typeof pl.fields !== 'object' || Array.isArray(pl.fields)) return null;
+      const f = pl.fields, fo = {};
+      if (f.title != null) { if (typeof f.title !== 'string' || !f.title.trim()) return null; fo.title = f.title.trim().slice(0, 160); }
+      if (f.durationMin != null) { const d = prInt(f.durationMin, 1, 600); if (d == null) return null; fo.durationMin = d; }
+      if (f.start != null) { if (typeof f.start !== 'string' || (f.start !== '' && !PR_TIME.test(f.start))) return null; fo.start = f.start; }
+      if (!Object.keys(fo).length) return null;
+      Object.assign(c, { sessionId: pl.sessionId, fields: fo, label }); break;
+    }
+    case 'gunnotu': if (!prDateOk(pl.date) || typeof pl.note !== 'string') return null; Object.assign(c, { date: pl.date, note: pl.note.trim().slice(0, 80) }); break;
+  }
+  const out = { id: p.id, createdAt: p.createdAt.slice(0, 40), kind: p.kind, payload: c, note: prStr(p.note, PR_NOTE_MAX) };
+  if (p.withdrawn === true) out.withdrawn = true;
+  return out;
+}
+/* en çok max öneri: önce en eski karar verilmiş/geri çekilmişler atılır; liste eskiden yeniye sıralı */
+function prCap(list, status, max) {
+  max = max || PR_MAX; const out = list.slice(), dec = p => p.withdrawn || !!(status && status[p.id]);
+  while (out.length > max) { const i = out.findIndex(dec); if (i < 0) break; out.splice(i, 1); }
+  return out.length > max ? out.slice(out.length - max) : out;
+}
+/* oneriler.json belgesini temizle → { app, syncVersion, updatedAt, proposals } | null (okunamıyorsa) */
+function prDocClean(doc) {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc) || !Array.isArray(doc.proposals)) return null;
+  const seen = new Map();
+  doc.proposals.forEach(x => { const v = prValidate(x); if (!v) return; const o = seen.get(v.id); if (o) { if (v.withdrawn) o.withdrawn = true; } else seen.set(v.id, v); });
+  const list = [...seen.values()].map((v, i) => ({ v, i })).sort((a, b) => (a.v.createdAt < b.v.createdAt ? -1 : a.v.createdAt > b.v.createdAt ? 1 : a.i - b.i)).map(o => o.v);
+  return { app: 'lgs-takip', syncVersion: 1, updatedAt: typeof doc.updatedAt === 'string' ? doc.updatedAt.slice(0, 40) : '', proposals: prCap(list, null) };
+}
+/* velinin işlemini (ekle/geri çek) güncel dosya içeriğine uygula: kimin ne yazdığı id ile birleşir, mevcut öneriler asla silinmez */
+function prApplyOp(list, op) {
+  const out = list.map(p => Object.assign({}, p));
+  if (op && op.add) { if (!out.some(p => p.id === op.add.id)) out.push(Object.assign({}, op.add)); }
+  else if (op && op.withdraw) { const p = out.find(x => x.id === op.withdraw); if (p) p.withdrawn = true; }
+  return out;
+}
+/* proposalStatus'u temizle ve son 100 karara indir (en yeni kalır) */
+function prSanitizeStatus(o) {
+  const out = {}; if (!o || typeof o !== 'object' || Array.isArray(o)) return out; const arr = [];
+  for (const k of Object.keys(o)) { const v = o[k]; if (!PR_ID.test(k) || !v || typeof v !== 'object' || !PR_STATUSES.includes(v.status)) continue; arr.push([k, { status: v.status, decidedAt: prStr(v.decidedAt, 40), summary: prStr(v.summary, 200) }]); }
+  arr.sort((a, b) => (a[1].decidedAt < b[1].decidedAt ? 1 : a[1].decidedAt > b[1].decidedAt ? -1 : a[0] < b[0] ? -1 : 1));
+  arr.slice(0, PR_STATUS_MAX).forEach(([k, v]) => { out[k] = v; }); return out;
+}
+/* çocuğun cevap vermediği, geri çekilmemiş öneriler; en eski önce */
+const prPending = (list, status) => list.filter(p => !p.withdrawn && !(status && status[p.id])).sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1));
+/* görünür durum: 'onaylandi'|'reddedildi'|'eskidi' (karar) · 'geri' · 'bekliyor' */
+const prStatusOf = (p, status) => (status && status[p.id] ? status[p.id].status : p.withdrawn ? 'geri' : 'bekliyor');
+function prFind(plans, id) {
+  for (const ws of Object.keys(plans || {})) { const q = plans[ws]; if (!q || !Array.isArray(q.sessions)) continue; const s = q.sessions.find(x => x && x.id === id); if (s) return { ws, s, date: plAdd(ws, s.day) }; }
+  return null;
+}
+/* öneri artık uygulanamaz mı? null = güncel · 'gecmis' | 'yok' | 'bitti'.  ctx: { today, linkInfo(l)→{max,title,lgsTopicId}|null } */
+function prStale(p, plans, ctx) {
+  const pl = p.payload, today = ctx.today, f = pl.sessionId ? prFind(plans, pl.sessionId) : null;
+  switch (p.kind) {
+    case 'ekle': if (pl.date < today) return 'gecmis'; if (pl.links.length && !pl.links.some(l => ctx.linkInfo && ctx.linkInfo(l))) return 'yok'; return null;
+    case 'sil': return !f ? 'yok' : f.s.done ? 'bitti' : null;
+    case 'tasi': return !f ? 'yok' : f.s.done ? 'bitti' : pl.toDate < today ? 'gecmis' : null;
+    case 'miktar': return !f ? 'yok' : f.s.done ? 'bitti' : !(f.s.links || [])[pl.linkIndex] ? 'yok' : null;
+    case 'duzenle': return f ? null : 'yok';
+    case 'gunnotu': return pl.date < today ? 'gecmis' : null;
+  }
+  return 'yok';
+}
+/* öneriyi planShift değişikliğine çevir (gunnotu için null). Görev kimliği öneri kimliğinden türer: aynı öneri iki kez uygulanırsa ikinci görev oluşmaz. */
+function prToChange(p, ctx) {
+  const pl = p.payload;
+  switch (p.kind) {
+    case 'ekle': {
+      const infos = pl.links.map(l => ({ l, i: ctx.linkInfo && ctx.linkInfo(l) })).filter(x => x.i);
+      const links = infos.map(x => ({ bookId: x.l.bookId, itemId: x.l.itemId, amount: Math.min(x.l.amount, Math.max(1, x.i.max || x.l.amount)) }));
+      const title = pl.title || (infos[0] && infos[0].i.title) || (pl.subjectId ? (ctx.subjName ? ctx.subjName(pl.subjectId) : '') : '') || 'Deneme';
+      return { type: 'ekle', date: pl.date, session: { id: 'pr-' + p.id, subjectId: pl.subjectId, title, durationMin: pl.durationMin, start: pl.start, links, applied: [], lgsTopicId: (infos[0] && infos[0].i.lgsTopicId) || null, source: 'veli', done: false } };
+    }
+    case 'sil': return { type: 'sil', sessionId: pl.sessionId };
+    case 'tasi': return { type: 'tasi', sessionId: pl.sessionId, toDate: pl.toDate };
+    case 'miktar': { const mx = ctx.linkMax ? ctx.linkMax(pl.sessionId, pl.linkIndex) : 0; return { type: 'miktar', sessionId: pl.sessionId, linkIndex: pl.linkIndex, amount: mx > 0 ? Math.min(pl.amount, mx) : pl.amount, durationMin: pl.durationMin }; }
+    case 'duzenle': return { type: 'duzenle', sessionId: pl.sessionId, fields: Object.assign({}, pl.fields) };
+  }
+  return null;
+}
+/* sade Türkçe özet. look: { task(id)→{title}|null, subj(id)→ders adı, linkLabel(l)→"Konu — Kitap" } */
+function prSummary(p, look) {
+  look = look || {}; const pl = p.payload, tt = () => '“' + ((look.task && look.task(pl.sessionId) && look.task(pl.sessionId).title) || pl.label || 'bir görev') + '”';
+  switch (p.kind) {
+    case 'ekle': { const sj = pl.subjectId ? ((look.subj && look.subj(pl.subjectId)) || 'Ders') : 'Deneme', t = pl.title || (pl.links[0] && look.linkLabel && look.linkLabel(pl.links[0])) || ''; return `${prDayLabel(pl.date)} gününe yeni görev: ${sj}${t ? ' — ' + t : ''} (${pl.durationMin} dk${pl.start ? ', saat ' + pl.start : ''})`; }
+    case 'sil': return `${tt()} görevini programdan çıkar`;
+    case 'tasi': return `${tt()} görevini ${prDayLabel(pl.toDate)} gününe taşı`;
+    case 'miktar': return `${tt()} görevinde miktarı ${pl.amount} yap${pl.durationMin ? `, süreyi ${pl.durationMin} dk yap` : ''}`;
+    case 'duzenle': { const f = pl.fields, a = []; if (f.title) a.push(`başlık “${f.title}”`); if (f.durationMin) a.push(`süre ${f.durationMin} dk`); if (f.start != null) a.push(f.start ? `saat ${f.start}` : 'saati kaldır'); return `${tt()} görevinde değişiklik: ${a.join(', ')}`; }
+    case 'gunnotu': return pl.note ? `${prDayLabel(pl.date)} günü notu: “${pl.note}”` : `${prDayLabel(pl.date)} günü notunu sil`;
+  }
+  return '';
+}
+/* ===== PROPOSAL-PURE-END ===== */
 /* ===== LINKS-PURE-BEGIN: görev↔kitap bağlantısı saf fonksiyonları (DOM/state kullanmaz; node birim testleri bu bloğu ayıklar) ===== */
 const lkLower = s => String(s ?? '').toLocaleLowerCase('tr-TR');
 const lkKey = s => lkLower(s).replace(/[\s\p{P}\p{S}]+/gu, '');
@@ -1054,7 +1189,7 @@ function defaultState() {
     profile: { name: '', gender: '', themeChoice: '', skipped: false, studentName: '', examDate: null, dailyMinutes: { 0: 120, 1: 120, 2: 120, 3: 120, 4: 120, 5: 240, 6: 180 }, theme: 'auto' },
     settings: { apiKey: '', model: 'claude-sonnet-5-5', dataUrl: '', analysisYears: null, useWebSearch: true },
     subjects: embedded.subjects.map((s, i) => ({ id: s.id, name: s.name, shortName: SUBJ_SHORT[s.id] || s.name.slice(0, 12), emoji: SUBJ_EMOJI[s.id] || '📘', color: s.color, lgsSubjectId: s.id, visible: true, order: i })),
-    books: [], topicOverrides: {}, activity: [], plans: {}, dershane: { slots: [], exceptions: {} },
+    books: [], topicOverrides: {}, activity: [], plans: {}, dershane: { slots: [], exceptions: {} }, proposalStatus: {},
     lgsDataOverride: null, lgsDataMeta: { source: 'embedded', appliedAt: null, previous: null },
     ui: { lastRoute: '#program', bookSubject: 'all' },
     meta: { importTimesCleared: true }
@@ -1102,6 +1237,7 @@ function migrateState(s) {
   }
   if (!m.topicOverrides || typeof m.topicOverrides !== 'object') m.topicOverrides = {};
   m.dershane = dhSanitize(s.dershane, uid);
+  m.proposalStatus = prSanitizeStatus(s.proposalStatus);
   m.meta = Object.assign({}, s.meta || {}); m.meta.linksMigrated = true;
   if (!m.meta.modifiedAt) m.meta.modifiedAt = '1970-01-01T00:00:00.000Z';
   if (!m.meta.importTimesCleared) {
@@ -1198,6 +1334,8 @@ function syncErrMsg(status) {
 }
 const contentsPath = () => `/repos/${sync.cfg.repo.trim()}/contents/${sync.cfg.path.trim().replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/')}`;
 async function ghFetch(method, apiPath, opt = {}) {
+  /* yazma ayrımı (son güvenlik): veli cihazı yalnız oneriler.json'a, öğrenci cihazı yalnız veri.json'a yazabilir */
+  if (method === 'PUT' && typeof propContentsPath === 'function') { const isProp = apiPath === propContentsPath(); if ((isReader() && !isProp) || (!isReader() && isProp)) throw new SyncError(-3, 'Bu cihaz bu dosyaya yazamaz.'); }
   const headers = { Authorization: 'Bearer ' + sync.cfg.token, Accept: opt.accept || 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
   if (opt.body) headers['Content-Type'] = 'application/json';
   try { return await fetch('https://api.github.com' + apiPath, { method, headers, body: opt.body, cache: 'no-store', keepalive: opt.keepalive || undefined }); }
@@ -1352,7 +1490,7 @@ function queueReconcile() {
   syncRun(() => { sync.reconQueued = false; if (sync.reconciled || sync.dismissed) return; return doReconcile(); });
 }
 function syncStart() {
-  clearInterval(sync.iv); clearTimeout(sync.pt); sync.sha = null; sync.lastSig = null; sync.pending = false; sync.reconciled = false; sync.dismissed = false; sync.gen++;
+  clearInterval(sync.iv); clearTimeout(sync.pt); sync.sha = null; sync.lastSig = null; sync.pending = false; sync.reconciled = false; sync.dismissed = false; sync.gen++; propsReset();
   if (!sync.cfg.enabled) { sync.status = 'off'; renderSyncChrome(); return; }
   if (!sync.cfg.role) { setSyncStatus('err', 'Önce kimin cihazı olduğunu seç.'); return; }
   if (isReader()) snapReader();
@@ -1361,8 +1499,10 @@ function syncStart() {
     if (isReader()) { if (document.visibilityState === 'visible') syncRun(doPull); }
     else if (!sync.reconciled) queueReconcile();
     else if (sync.pending || sync.status === 'err') syncRun(() => doPush());
+    propsTick();
   }, 60000);
   syncRun(isReader() ? doPull : doReconcile);
+  if (isReader()) propsTick();
 }
 function syncNow() { if (!syncReady()) { showToast('Önce ayarları doldur.', 'error'); return Promise.resolve(); } sync.dismissed = false; return syncRun(isReader() ? doPull : doReconcile); }
 function syncInit() {
@@ -1379,10 +1519,10 @@ function syncInit() {
       rerender(true);
     }, 0);
   });
-  window.addEventListener('online', () => { if (!syncReady()) return; if (isReader()) syncRun(doPull); else if (!sync.reconciled) queueReconcile(); else if (sync.pending || sync.status === 'err') syncRun(() => doPush()); });
+  window.addEventListener('online', () => { if (!syncReady()) return; if (isReader()) syncRun(doPull); else if (!sync.reconciled) queueReconcile(); else if (sync.pending || sync.status === 'err') syncRun(() => doPush()); propsTick(); });
   const flushPush = () => { if (sync.pending && isWriter() && syncReady()) { clearTimeout(sync.pt); syncRun(() => doPush(true)); } };
   window.addEventListener('pagehide', flushPush);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPush(); else if (syncReady() && isReader()) syncRun(doPull); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPush(); else if (syncReady() && isReader()) syncRun(doPull); if (document.visibilityState === 'visible') propsTick(); });
   $('#sync-ind').addEventListener('click', () => {
     if (sync.status === 'err') { showToast(sync.err || 'Eşitleme hatası', 'error'); navigate('#ayarlar'); }
     else if (sync.status === 'busy') showToast('Gönderiliyor…');
@@ -1391,6 +1531,7 @@ function syncInit() {
 }
 function renderSyncChrome() {
   document.body.classList.toggle('readonly', isReader());
+  if (sync.reconciled !== pr.wasRecon) { pr.wasRecon = sync.reconciled; if (sync.reconciled && isWriter()) setTimeout(propsTick, 0); }
   const ind = $('#sync-ind'), on = sync.cfg.enabled;
   if (ind) {
     ind.classList.toggle('hidden', !on); ind.dataset.state = on ? sync.status : 'off';
@@ -1440,8 +1581,8 @@ function syncCard() {
     'Generate new token düğmesine bas.',
     'Expiration (süre): Custom → bir yıl sonrasını seç.',
     'Repository access: "Only select repositories" → lgsTakip-veri deposunu seç.',
-    'Permissions → "Add permissions" → Contents. Öğrenci cihazı için "Read and write", veli cihazı için "Read-only" seç.',
-    'İki ayrı anahtar gerekir: öğrenci için (Read and write) ve veli için (Read-only). Her veli için ayrı bir anahtar da üretebilirsin.',
+    'Permissions → "Add permissions" → Contents. Öğrenci cihazı için "Read and write" seç. Veli cihazı da öneri gönderebilmek için "Read and write" olmalı (veli cihazı yalnız oneriler.json dosyasına yazar, öğrencinin verisine asla dokunmaz). Yalnız izlemek isteyen veli için "Read-only" yeter.',
+    'İki ayrı anahtar gerekir: öğrenci için ve veli için. Her veli için ayrı bir anahtar da üretebilirsin.',
     'Generate token → çıkan anahtarı kopyala → o cihazda buraya yapıştır.'].map(t => el('li', { text: t }))), el('p', { class: 'small err', text: 'Bu anahtarı kimseyle paylaşma.' })]);
   return card('☁ Ortak veri (veli takibi)', el('div', { class: 'stack' }, [
     el('p', { class: 'small muted', text: 'Öğrencinin cihazındaki program gizli bir GitHub deposuna kaydedilir; velinin cihazı oradan okuyup bugünü görür. Anahtar yalnızca bu cihazda saklanır, yedeğe girmez.' }),
@@ -1474,6 +1615,261 @@ async function afterWipe(cloud) {
     try { await syncRun(() => doPush()); } finally { sync.allowEmpty = false; }
     showToast(sync.status === 'err' ? 'Bulut kopyası silinemedi: ' + sync.err : 'Bulut kopyası da silindi', sync.status === 'err' ? 'error' : 'success');
   } else { sync.cfg.enabled = false; sync.cfg.bound = null; sync.cfg.lastSyncedMod = null; saveSyncCfg(); syncStart(); rerender(true); }
+}
+
+/* ============================ veli önerileri (oneriler.json) ============================
+   Yazma ayrımı: ÖĞRENCİ cihazı yalnız veri.json'a PUT atar (oneriler.json'u yalnız okur); VELİ cihazı yalnız oneriler.json'a PUT atar (veri.json'a asla).
+   Çocuğun kararı veri.json içindeki state.proposalStatus ile yayınlanır; veli iki dosyayı da okuyup durumu gösterir. */
+const PROP_FILE = 'oneriler.json', PROP_QKEY = 'lgsTakip.propq', PROP_403 = 'Veli anahtarının yazma izni yok. Anahtarı \'Read and write\' yapıp tekrar dene.';
+const pr = { sha: null, list: [], sig: '', inbox: [], inboxSig: '', polling: false, queue: [], err: '', wasRecon: false };
+function propFilePath() { const p = String(sync.cfg.path || 'veri.json').trim().replace(/^\/+/, ''), i = p.lastIndexOf('/'); return (i >= 0 ? p.slice(0, i + 1) : '') + PROP_FILE; }
+const propSafe = () => propFilePath().toLowerCase() !== String(sync.cfg.path || '').trim().replace(/^\/+/, '').toLowerCase();
+function propContentsPath() { return `/repos/${sync.cfg.repo.trim()}/contents/${propFilePath().split('/').map(encodeURIComponent).join('/')}`; }
+function propLoadQueue() {
+  try { const a = JSON.parse(localStorage.getItem(PROP_QKEY) || '[]'); pr.queue = (Array.isArray(a) ? a : []).map(o => { if (o && o.add) { const v = prValidate(o.add); return v ? { add: v } : null; } return o && typeof o.withdraw === 'string' && PR_ID.test(o.withdraw) ? { withdraw: o.withdraw } : null; }).filter(Boolean).slice(0, 80); } catch (e) { pr.queue = []; }
+}
+function propSaveQueue() { try { localStorage.setItem(PROP_QKEY, JSON.stringify(pr.queue)); } catch (e) { /* yoksay */ } }
+/* oneriler.json oku: { sha, list } (dosya yoksa list=[]); bozuk dosya hata verir — üzerine ASLA yazılmaz */
+async function readProps() {
+  const path = propContentsPath(), res = await ghFetch('GET', path);
+  if (res.status === 404) return { missing: true, sha: null, list: [] };
+  if (!res.ok) throw new SyncError(res.status, syncErrMsg(res.status));
+  const j = await res.json(); let text = '';
+  if (j.content && j.encoding === 'base64') { try { text = b64ToUtf8(j.content); } catch (e) { text = ''; } }
+  if (!text.trim()) { const r2 = await ghFetch('GET', path, { accept: 'application/vnd.github.raw+json' }); if (!r2.ok) throw new SyncError(r2.status, syncErrMsg(r2.status)); text = await r2.text(); }
+  let doc; try { doc = JSON.parse(text); } catch (e) { throw new SyncError(-1, 'Öneri dosyası okunamadı (bozuk görünüyor).'); }
+  const clean = prDocClean(doc); if (!clean) throw new SyncError(-1, 'Öneri dosyası bir LGS Takip öneri dosyası değil.');
+  return { sha: j.sha, list: clean.proposals };
+}
+/* VELİ: bekleyen işlemleri (ekle / geri çek) dosyaya yaz. Her denemede dosya yeniden okunur (sha + birleştirme); 409/422'de bir kez daha denenir. */
+async function propFlush() {
+  if (!pr.queue.length) return { ok: true };
+  if (!isReader() || !syncReady() || !propSafe()) return { ok: false, status: -2, msg: 'Önce Ayarlar\'dan ortak veriyi aç.' };
+  const ops = pr.queue.slice(); let attempt = 0;
+  try {
+    for (;;) {
+      const r = await readProps();
+      let list = r.list; ops.forEach(op => { list = prApplyOp(list, op); });
+      list = prCap(list, state.proposalStatus);
+      const doc = { app: 'lgs-takip', syncVersion: 1, updatedAt: new Date().toISOString(), proposals: list };
+      const body = { message: `Öneri ${localDateKey(new Date())} ${fmtClock(Date.now())}`, content: utf8ToB64(JSON.stringify(doc)) }; if (r.sha) body.sha = r.sha;
+      const res = await ghFetch('PUT', propContentsPath(), { body: JSON.stringify(body) });
+      if (res.status === 409 || res.status === 422) { if (attempt++ < 1) continue; throw new SyncError(res.status, syncErrMsg(res.status)); }
+      if (!res.ok) throw new SyncError(res.status, syncErrMsg(res.status));
+      let j = null; try { j = await res.json(); } catch (e) { /* yoksay */ }
+      pr.sha = (j && j.content && j.content.sha) || null; pr.queue = pr.queue.filter(o => !ops.includes(o)); propSaveQueue(); pr.err = '';
+      propSetList(list); return { ok: true };
+    }
+  } catch (e) { pr.err = e.message; return { ok: false, status: e.status, msg: e.message }; }
+}
+const PROP_RETRY = s => s === 0 || s >= 500;   /* yalnız ağ yok / GitHub hatası: kuyruğa alıp sonra tekrar dene; diğerleri (izin, bozuk dosya, çakışma) kalıcı hata: taslak kalır */
+const propFail = r => ({ ok: false, status: r.status, msg: r.status === 403 ? PROP_403 : r.msg });
+async function propSend(p) {
+  const op = { add: p }; pr.queue.push(op); propSaveQueue();
+  const r = await syncRun(propFlush);
+  if (r && r.ok) return { ok: true };
+  if (r && !PROP_RETRY(r.status)) { pr.queue = pr.queue.filter(o => o !== op); propSaveQueue(); return propFail(r); }   /* kalıcı hata: taslak kalır, kuyruğa alınmaz */
+  return { ok: false, queued: true, msg: r && r.msg };
+}
+async function propWithdraw(id) {
+  const qi = pr.queue.findIndex(o => o.add && o.add.id === id);
+  if (qi >= 0) { pr.queue.splice(qi, 1); propSaveQueue(); propRefreshVeli(); return { ok: true }; }   /* henüz gönderilmemişti */
+  const op = { withdraw: id }; pr.queue.push(op); propSaveQueue();
+  const r = await syncRun(propFlush);
+  if (r && r.ok) return { ok: true };
+  if (r && !PROP_RETRY(r.status)) { pr.queue = pr.queue.filter(o => o !== op); propSaveQueue(); return propFail(r); }
+  return { ok: false, queued: true, msg: r && r.msg };
+}
+function propSetList(list) { const sig = JSON.stringify(list); pr.list = list; if (sig !== pr.sig) { pr.sig = sig; propRefreshVeli(); } }
+function propRefreshVeli() { if (parseRoute().name === 'veli' && !document.querySelector('dialog[open]')) rerender(true); }
+async function propPollOwn() {
+  if (!isReader() || !syncReady() || !propSafe()) return;
+  const gen = sync.gen;
+  try { const r = await readProps(); if (gen !== sync.gen) return; pr.sha = r.sha; pr.err = ''; propSetList(r.list); } catch (e) { pr.err = e.message; }
+}
+/* ÖĞRENCİ: oneriler.json'u yalnız GET ile oku; reconcile/itme/diyaloglardan bağımsız, tek uçuşlu */
+async function propPollInbox() {
+  if (!isWriter() || !syncReady() || !propSafe() || pr.polling) return;
+  pr.polling = true; const gen = sync.gen;
+  try { const r = await readProps(); if (gen !== sync.gen) return; pr.inbox = r.list; pr.err = ''; propAfterInbox(); }
+  catch (e) { pr.err = e.message; }   /* sessiz: ana eşitleme göstergesi zaten hata gösterir */
+  finally { pr.polling = false; }
+}
+function propsTick() {
+  if (!syncReady() || !propSafe() || document.visibilityState === 'hidden') return;
+  if (isWriter()) { if (sync.reconciled) propPollInbox(); }
+  else if (isReader()) syncRun(async () => { if (pr.queue.length) await propFlush(); await propPollOwn(); });
+}
+function propsReset() { pr.sha = null; pr.list = []; pr.sig = ''; pr.inbox = []; pr.inboxSig = ''; pr.polling = false; pr.err = ''; pr.wasRecon = false; if (isReader()) propLoadQueue(); else pr.queue = []; }
+/* ---- öğrenci: bildirim kartı ve karar ---- */
+const propLinkInfo = l => { const i = linkInfo(l); return i ? { max: i.it.total, title: i.it.title, lgsTopicId: i.it.lgsTopicId || null } : null; };
+const propCtx = () => ({ today: todayKey(), linkInfo: propLinkInfo, subjName: subjectName, linkMax: (sid, idx) => { const f = prFind(state.plans, sid), l = f && (f.s.links || [])[idx], i = l && linkInfo(l); return i ? i.it.total : 0; } });
+const propLook = () => ({ task: id => { const f = prFind(state.plans, id); return f ? { title: f.s.title || subjShort(f.s.subjectId) } : null; }, subj: subjShort, linkLabel: l => { const i = linkInfo(l); return i ? i.it.title + ' — ' + i.b.title : ''; } });
+const propSummaryOf = p => prSummary(p, propLook()).slice(0, 200);
+/* şu anki programa göre: özet, eskidi mi, planShift sonucu (veli hiçbir şey hesaplamaz) */
+function propPreview(p) {
+  const summary = propSummaryOf(p), stale = prStale(p, state.plans, propCtx()); let res = null;
+  if (!stale) { if (p.kind === 'gunnotu') res = { plans: state.plans, moved: [], overflow: 0, error: null, primary: null }; else { const ch = prToChange(p, propCtx()); res = ch ? planShift(state.plans, ch, plCtx()) : { plans: state.plans, moved: [], overflow: 0, error: 'tur', primary: null }; } }
+  return { summary, stale, res };
+}
+function propTargetDate(p, res) { const pl = p.payload; if (p.kind === 'ekle' || p.kind === 'gunnotu') return pl.date; if (p.kind === 'tasi') return pl.toDate; const f = prFind(res ? res.plans : state.plans, pl.sessionId); return f ? f.date : null; }
+function propAutoStale() {
+  if (!isWriter() || !sync.reconciled) return;
+  const ctx = propCtx(), now = new Date().toISOString(); let n = 0;
+  prPending(pr.inbox, state.proposalStatus).forEach(p => { if (prStale(p, state.plans, ctx)) { state.proposalStatus[p.id] = { status: 'eskidi', decidedAt: now, summary: propSummaryOf(p) }; n++; } });
+  if (n) { state.proposalStatus = prSanitizeStatus(state.proposalStatus); saveState(); showToast(n > 1 ? `Velinin ${n} önerisi artık güncel değil, kapattım.` : 'Velinin bir önerisi artık güncel değil, kapattım.', 'info'); }
+}
+function propAfterInbox() { propAutoStale(); renderPropBox(); }
+function propDecide(p, approve) {
+  if (!isWriter() || !sync.reconciled) { showToast('Önce eşitleme bitsin, sonra karar ver.', 'info'); return; }
+  if (state.proposalStatus[p.id]) { renderPropBox(); return; }   /* bu öneriye zaten cevap verilmiş: ikinci kez uygulanmaz */
+  const pre = propPreview(p); let status = approve ? 'onaylandi' : 'reddedildi', msg = null;
+  if (pre.stale || (approve && pre.res && pre.res.error)) { status = 'eskidi'; msg = 'Bu öneri güncel değil.'; }
+  else if (approve) {
+    const d = propTargetDate(p, pre.res);
+    if (p.kind === 'gunnotu') ensurePlan(plWs(p.payload.date)).dayNotes[plIdx(p.payload.date)] = p.payload.note; else state.plans = pre.res.plans;
+    if (d) { ui.programWeek = plWs(d); ui.selDay = plIdx(d); }
+    const k = pre.res.moved.length; msg = 'Tamam, programa işledim ✔' + (k ? ` (${k} görev kaydı)` : '');
+  } else msg = 'Tamam, şimdilik hayır dedim.';
+  state.proposalStatus[p.id] = { status, decidedAt: new Date().toISOString(), summary: pre.summary };
+  state.proposalStatus = prSanitizeStatus(state.proposalStatus);
+  changed(); showToast(msg, status === 'onaylandi' ? 'success' : 'info');
+}
+function propBoxEl() { const b = el('div', { id: 'propbox' }); fillPropBox(b); return b; }
+function renderPropBox() { const b = $('#propbox'); if (b) fillPropBox(b); }
+function fillPropBox(box) {
+  box.replaceChildren();
+  if (!isWriter() || !sync.reconciled) return;
+  const list = prPending(pr.inbox, state.proposalStatus); if (!list.length) return;
+  const p = list[0], pre = propPreview(p), res = pre.res, lines = [];
+  lines.push(el('p', { class: 'propline', text: 'Velin bunu önerdi: ' + pre.summary }));
+  if (p.note) lines.push(el('p', { class: 'propline', text: 'Not: ' + p.note }));
+  if (pre.stale) lines.push(el('p', { class: 'propline err', text: 'Bu öneri güncel değil.' }));
+  else if (res.error) lines.push(el('p', { class: 'propline err', text: 'Şu an programa uygulanamıyor. Onaylarsan öneri kapanır, program değişmez.' }));
+  else {
+    if (res.moved.length) lines.push(el('div', { class: 'propline' }, [el('b', { text: 'Sistem şunları kaydıracak:' }), el('ul', { class: 'propmoved' }, res.moved.map(m => { const f = prFind(res.plans, m.sessionId); return el('li', { text: `${subjShort(f ? f.s.subjectId : '')}: “${f ? (f.s.title || '') : ''}” → ${prDayLabel(m.toDate)}` }); }))]));
+    else lines.push(el('p', { class: 'propline muted', text: 'Başka bir görev kaymayacak.' }));
+    if (res.overflow > 0) lines.push(el('p', { class: 'propline err', text: `O gün kapasiteyi ${res.overflow} dk aşıyor; yine de onaylayabilirsin.` }));
+    lines.push(el('p', { class: 'propline', text: 'Onaylarsan programa işleyeceğim.' }));
+  }
+  box.appendChild(el('section', { class: 'card propcard', role: 'status' }, [el('h2', { text: '💬 Velinden bir öneri var' + (list.length > 1 ? ` (${list.length - 1} öneri daha sırada)` : '') }), ...lines,
+    el('div', { class: 'row wrapflex propbtns' }, [btn(pre.stale ? 'Tamam' : 'Onayla', () => propDecide(p, true), 'primary lg propyes'), pre.stale ? null : btn('Şimdilik hayır', () => propDecide(p, false), 'lg propno')])]));
+}
+/* ---- veli: öneri oluşturma ve liste ---- */
+const PROP_STATUS_TX = { bekliyor: 'Gönderildi · Onay bekliyor', onaylandi: 'Onaylandı', reddedildi: 'Şimdilik hayır', eskidi: 'Güncel değil', geri: 'Geri çekildi' };
+function propListCard() {
+  const items = propView().slice().reverse(), shown = items.slice(0, 12);
+  const c = card('💬 Önerilerim', null, 'vcard proplist');
+  if (!items.length) c.appendChild(el('p', { class: 'muted', text: 'Henüz öneri göndermedin.' }));
+  if (pr.err && pr.queue.length) c.appendChild(el('p', { class: 'small err', text: 'Bazı öneriler henüz gönderilemedi: ' + pr.err }));
+  shown.forEach(p => {
+    const stt = prStatusOf(p, state.proposalStatus), rec = state.proposalStatus[p.id], look = propLook();
+    const txt = stt === 'onaylandi' ? 'Onaylandı: ' + (rec.summary || prSummary(p, look)) : stt === 'bekliyor' && p.q ? 'Gönderiliyor… (bağlanınca gidecek)' : PROP_STATUS_TX[stt];
+    c.appendChild(el('div', { class: 'proprow st-' + stt, 'data-pid': p.id }, [
+      el('div', { class: 'propsum', text: prSummary(p, look) }), p.note ? el('div', { class: 'small muted', text: 'Notun: ' + p.note }) : null,
+      el('div', { class: 'row between wrapflex' }, [el('span', { class: 'pchip ' + stt, text: txt }),
+        stt === 'bekliyor' ? btn('Geri çek', async () => { const r = await propWithdraw(p.id); showToast(r.ok ? 'Öneriyi geri çektin.' : r.queued ? 'Bağlanınca geri çekilecek.' : (r.msg || 'Geri çekilemedi.'), r.ok ? 'info' : 'error'); if (r.ok) rerender(true); }, 'sm') : null])]));
+  });
+  if (items.length > shown.length) c.appendChild(el('p', { class: 'small muted', text: `Eski ${items.length - shown.length} öneri daha var.` }));
+  return c;
+}
+function propView() {
+  const ids = new Set(pr.list.map(p => p.id)), out = pr.list.map(p => Object.assign({}, p));
+  pr.queue.forEach(op => { if (op.add && !ids.has(op.add.id)) out.push(Object.assign({}, op.add, { q: true })); else if (op.withdraw) { const x = out.find(p => p.id === op.withdraw); if (x) x.withdrawn = true; } });
+  return out;
+}
+function propVeliCard() {
+  const pending = propView().filter(p => prStatusOf(p, state.proposalStatus) === 'bekliyor').length;
+  return card('💬 Programda değişiklik öner', el('div', { class: 'stack' }, [
+    el('p', { class: 'small muted', text: 'Görev ekleyebilir, silebilir, başka güne taşıyabilir ya da süresini değiştirmeyi önerebilirsin. Çocuğun onaylayınca programa işlenir.' }),
+    btn('✍️ Öneri yap', () => (pending >= 30 ? showToast('Çok fazla bekleyen öneri var. Önce çocuğun cevap vermesini bekle.', 'error') : propComposer()), 'primary lg propnew')]), 'vcard');
+}
+function propComposer() {
+  if (!isReader()) return;
+  const today = todayKey(), dr = { id: uid(), kind: null, date: today, taskId: '', taskLabel: '', toDate: addDays(today, 1), subjectId: '', title: '', dur: 40, start: '', link: null, amount: 1, linkIndex: 0, newTitle: '', newDur: 40, newStart: '', gnote: '', note: '' };
+  const body = el('div', { class: 'sheetbody propform' }), lab = t => el('div', { class: 'flabel', text: t });
+  const sumBox = el('div', { class: 'propsumbox', 'aria-live': 'polite' }), errBox = el('p', { class: 'small err', 'aria-live': 'polite' });
+  let sendBtn = null;
+  const orig = () => (dr.taskId ? prFind(state.plans, dr.taskId) : null);
+  const build = () => {
+    if (!dr.kind) return null; const t = orig(); let payload;
+    switch (dr.kind) {
+      case 'ekle': payload = { date: dr.date, subjectId: dr.subjectId, title: dr.title.trim(), durationMin: dr.dur, start: dr.start || '', links: dr.link ? [{ bookId: dr.link.bookId, itemId: dr.link.itemId, amount: dr.amount }] : [] }; break;
+      case 'sil': payload = { sessionId: dr.taskId, label: dr.taskLabel }; break;
+      case 'tasi': payload = { sessionId: dr.taskId, toDate: dr.toDate, label: dr.taskLabel }; break;
+      case 'miktar': payload = { sessionId: dr.taskId, linkIndex: dr.linkIndex, amount: dr.amount, label: dr.taskLabel }; break;
+      case 'duzenle': { if (!t) return null; const f = {}; if (dr.newTitle.trim() && dr.newTitle.trim() !== (t.s.title || '')) f.title = dr.newTitle.trim(); if (dr.newDur !== t.s.durationMin) f.durationMin = dr.newDur; if ((dr.newStart || '') !== (t.s.start || '')) f.start = dr.newStart || ''; payload = { sessionId: dr.taskId, fields: f, label: dr.taskLabel }; break; }
+      case 'gunnotu': payload = { date: dr.date, note: dr.gnote }; break;
+    }
+    const v = prValidate({ id: dr.id, createdAt: new Date().toISOString(), kind: dr.kind, payload, note: dr.note.trim().slice(0, PR_NOTE_MAX) });
+    return v && !prStale(v, state.plans, propCtx()) ? v : null;
+  };
+  const refresh = () => { const v = build(); sumBox.replaceChildren(el('b', { text: 'Önerin: ' }), document.createTextNode(v ? prSummary(v, propLook()) : (dr.kind ? 'Yukarıdaki adımları tamamla.' : 'Önce ne yapmak istediğini seç.'))); if (sendBtn) sendBtn.disabled = !v; };
+  const dateIn = (val, min, on, aria) => { const i = el('input', { type: 'date', value: val, min, 'aria-label': aria || 'Tarih' }); i.addEventListener('change', () => { if (prDateOk(i.value)) on(i.value); }); return i; };
+  const durStrip = (cur, on) => chipStrip([...new Set([...DUR_CHIPS, cur])].sort((a, b) => a - b).map(n => ({ id: n, label: n + ' dk' })), cur, on, 'wrap');
+  /* görev seçici: gün seç → o günün bitmemiş görevleri */
+  const taskPick = (need) => {
+    const box = el('div');
+    box.appendChild(lab('Hangi gün?')); box.appendChild(dateIn(dr.pickDate || today, null, v => { dr.pickDate = v; dr.taskId = ''; draw(); }, 'Görevin günü'));
+    const d = dr.pickDate || today, ws = plWs(d), list = sortedDay(state.plans[ws], plIdx(d)).filter(s => !s.done && (!need || need(s)));
+    box.appendChild(lab('Hangi görev?'));
+    if (!list.length) box.appendChild(el('p', { class: 'small muted', text: 'Bu günde seçilebilecek görev yok.' }));
+    list.forEach(s => box.appendChild(el('button', { type: 'button', class: 'itemopt' + (dr.taskId === s.id ? ' on' : ''), 'aria-pressed': String(dr.taskId === s.id), 'data-sid': s.id, onClick: () => { dr.taskId = s.id; dr.taskLabel = (s.title || subjShort(s.subjectId)).slice(0, 120); dr.newTitle = s.title || ''; dr.newDur = s.durationMin; dr.newStart = s.start || ''; dr.linkIndex = 0; const l = (s.links || [])[0]; dr.amount = l ? l.amount : 1; draw(); } }, [el('span', { class: 'io-t', text: `${subjEmoji(s.subjectId)} ${s.title || subjShort(s.subjectId)}` }), el('span', { class: 'io-n small muted', text: `${s.durationMin} dk` })])));
+    return box;
+  };
+  const stepper = (get, set, unit, max) => { const cnt = el('span', { class: 'cnt', text: get() + (unit ? ' ' + unit : '') }); const go = n => { set(clamp(n, 1, max || 9999)); cnt.textContent = get() + (unit ? ' ' + unit : ''); refresh(); }; return el('div', { class: 'counter lk-count' }, [el('button', { type: 'button', class: 'btn step', 'aria-label': 'Azalt', text: '−', onClick: () => go(get() - 1) }), cnt, el('button', { type: 'button', class: 'btn step', 'aria-label': 'Artır', text: '+', onClick: () => go(get() + 1) })]); };
+  function draw() {
+    body.replaceChildren();
+    body.appendChild(lab('Ne yapmak istersin?'));
+    body.appendChild(chipStrip([['ekle', '➕ Görev ekle'], ['sil', '🗑 Görevi sil'], ['tasi', '📆 Başka güne taşı'], ['miktar', '🔢 Miktarı değiştir'], ['duzenle', '✏️ Süre / saat / başlık'], ['gunnotu', '📝 Gün notu']].map(([id, label]) => ({ id, label })), dr.kind || '', id => { dr.kind = id; dr.taskId = ''; draw(); }, 'wrap kindchips'));
+    const t = orig();
+    if (dr.kind === 'ekle') {
+      body.append(lab('Hangi güne?'), dateIn(dr.date, today, v => { dr.date = v; refresh(); }, 'Görev günü'), lab('Hangi ders?'));
+      const subs = visibleSubjects();
+      body.appendChild(chipStrip(subjectOptions(subs, []).concat([{ id: '', label: 'Deneme', emoji: '🧪' }]), dr.subjectId, id => { dr.subjectId = id; dr.link = null; draw(); }));
+      const books = dr.subjectId ? subjectBooks(dr.subjectId) : [];
+      if (books.length) {
+        body.appendChild(lab('Hangi kitap? (istersen)'));
+        const itemBox = el('div'); const showItems = bid => { itemBox.replaceChildren(); const bk = bookById(bid); if (!bk) return; itemBox.appendChild(lab('Hangi konu / bölüm?')); bk.items.forEach(it => itemBox.appendChild(el('button', { type: 'button', class: 'itemopt' + (dr.link && dr.link.itemId === it.id ? ' on' : ''), 'data-iid': it.id, onClick: () => { dr.link = { bookId: bk.id, itemId: it.id }; dr.amount = 1; draw(); } }, [el('span', { class: 'io-t', text: it.title }), el('span', { class: 'io-n small muted', text: `${it.done}/${it.total} ${unitText(it)}` })]))); };
+        body.appendChild(chipStrip(books.map(b => ({ id: b.id, label: b.title, emoji: '📚' })), dr.link ? dr.link.bookId : (dr.bookPick || ''), id => { dr.bookPick = id; showItems(id); }));
+        body.appendChild(itemBox); const bid = dr.link ? dr.link.bookId : dr.bookPick; if (bid) showItems(bid);
+        const li = dr.link && linkInfo(dr.link); if (li) { body.appendChild(lab('Ne kadar?')); body.appendChild(stepper(() => dr.amount, n => { dr.amount = n; }, unitText(li.it), li.it.total)); }
+      }
+      body.append(lab('Ne yapacak? (istersen yaz)'));
+      const ti = el('input', { type: 'text', value: dr.title, maxlength: '160', placeholder: 'Örn. Olasılık — 2 test', 'aria-label': 'Görev başlığı' }); ti.addEventListener('input', () => { dr.title = ti.value; refresh(); }); body.appendChild(ti);
+      body.append(lab('Kaç dakika?'), durStrip(dr.dur, id => { dr.dur = id; refresh(); }));
+      const tm = el('input', { type: 'time', value: dr.start, 'aria-label': 'Saat' }); tm.addEventListener('input', () => { dr.start = tm.value; refresh(); }); body.append(lab('Saat (istersen)'), tm);
+    } else if (dr.kind === 'sil') body.appendChild(taskPick());
+    else if (dr.kind === 'tasi') { body.appendChild(taskPick()); body.append(lab('Hangi güne taşınsın?'), dateIn(dr.toDate, today, v => { dr.toDate = v; refresh(); }, 'Taşınacağı gün')); }
+    else if (dr.kind === 'miktar') {
+      body.appendChild(taskPick(s => (s.links || []).some(linkInfo)));
+      if (t) { const l = (t.s.links || [])[dr.linkIndex], li = l && linkInfo(l); if (li) { body.append(lab(`${li.it.title}: kaç ${unitText(li.it)}?`), stepper(() => dr.amount, n => { dr.amount = n; }, unitText(li.it), li.it.total)); } }
+    } else if (dr.kind === 'duzenle') {
+      body.appendChild(taskPick());
+      if (t) {
+        body.appendChild(el('p', { class: 'small muted', text: 'Değiştirmek istediklerini düzelt; dokunmadıkların aynı kalır.' }));
+        const ti = el('input', { type: 'text', value: dr.newTitle, maxlength: '160', 'aria-label': 'Yeni başlık' }); ti.addEventListener('input', () => { dr.newTitle = ti.value; refresh(); });
+        const tm = el('input', { type: 'time', value: dr.newStart, 'aria-label': 'Yeni saat' }); tm.addEventListener('input', () => { dr.newStart = tm.value; refresh(); });
+        body.append(lab('Başlık'), ti, lab('Kaç dakika?'), durStrip(dr.newDur, id => { dr.newDur = id; refresh(); }), lab('Saat'), el('div', { class: 'row' }, [tm, btn('Saati sil', () => { dr.newStart = ''; tm.value = ''; refresh(); }, 'sm')]));
+      }
+    } else if (dr.kind === 'gunnotu') {
+      const gi = el('input', { type: 'text', value: dr.gnote, maxlength: '80', placeholder: 'Örn. Bugün dinlen', 'aria-label': 'Gün notu' }); gi.addEventListener('input', () => { dr.gnote = gi.value; refresh(); });
+      body.append(lab('Hangi gün?'), dateIn(dr.date, today, v => { dr.date = v; refresh(); }, 'Notun günü'), lab('Not (boş bırakırsan not silinir)'), gi);
+    }
+    body.appendChild(lab('Çocuğuna not (istersen)'));
+    const ni = el('textarea', { maxlength: String(PR_NOTE_MAX), rows: '2', placeholder: 'Örn. Bu hafta biraz yorgunsun, hafifletelim.', 'aria-label': 'Not' }); ni.value = dr.note; ni.addEventListener('input', () => { dr.note = ni.value; });
+    body.append(ni, sumBox, errBox); refresh();
+  }
+  draw();
+  const m = openModal({ title: '✍️ Programda değişiklik öner', sheet: true, body, buttons: [{ label: 'Vazgeç' }, { label: 'Öneriyi gönder', cls: 'primary lg', onClick: async () => {
+    const v = build(); if (!v) return false;
+    sendBtn.disabled = true; errBox.textContent = 'Gönderiliyor…';
+    const r = await propSend(v);
+    if (r.ok) { showToast('Öneri gönderildi 👍 Çocuğun onaylayınca burada görünür.', 'success'); m.close(); propRefreshVeli(); return false; }
+    if (r.queued) { showToast('İnternet yok. Bağlanınca gönderilecek.', 'info'); m.close(); propRefreshVeli(); return false; }
+    errBox.textContent = r.msg || 'Gönderilemedi.'; sendBtn.disabled = false; return false;
+  } }] });
+  sendBtn = m.buttons[1]; refresh();
 }
 
 /* ---- Veli sayfası ---- */
@@ -1511,6 +1907,7 @@ function viewVeli(root) {
     el('div', { class: 'row between' }, [el('h1', { text: heroName() ? `👨‍👩‍👦 ${heroName()} · Veli sayfası` : '👨‍👩‍👦 Veli sayfası' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
     isReader() ? el('div', { class: 'small muted', text: sync.remoteUpdatedAt ? `Son güncelleme: ${fmtWhen(sync.remoteUpdatedAt)} (öğrencinin cihazından)` : 'Henüz veri alınmadı.' }) : null,
     isReader() && sync.status === 'err' ? el('div', { class: 'small err', text: sync.err }) : null]));
+  if (isReader()) { page.appendChild(propVeliCard()); page.appendChild(propListCard()); }
   // dershane (şu an / bugün gitmedi)
   vDhRendered = dhNowSig();
   const dnow = currentDershane(new Date()), nmv = heroName() || 'Öğrenci';
@@ -2467,6 +2864,7 @@ function viewProgram(root) {
     el('div', { class: 'sub', text: pn.n ? `${ws === curWs ? 'Bu hafta' : 'Seçili hafta'} ${pn.done} / ${pn.n} görev ✔` : (ws === curWs ? 'Bu hafta henüz görev yok' : 'Bu haftada görev yok') }),
     progBar(pn.n ? pn.done / pn.n : 0, 'var(--prog)')]));
   // 2 hafta seçici
+  if (isWriter() && !pv) page.appendChild(propBoxEl());
   page.appendChild(el('div', { class: 'weeknav no-print' }, [
     el('button', { type: 'button', class: 'arrow', 'aria-label': 'Önceki hafta', text: '‹', onClick: () => setWeek(addDays(ws, -7)) }),
     el('button', { type: 'button', class: 'wk', onClick: () => { if (ws !== curWs) setWeek(curWs); } }, [el('b', { text: weekRange(ws) }), ws !== curWs ? el('span', { class: 'small muted', text: 'Bu haftaya dön' }) : null]),
