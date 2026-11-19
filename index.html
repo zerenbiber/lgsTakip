@@ -17,7 +17,7 @@
 :root{
   --bg:#f3f5f9;--surface:#ffffff;--surface2:#eef1f6;--text:#1c2330;--muted:#7b8494;--muted-fill:#d9dee7;
   --border:#dde2ea;--accent:#2f6fed;--accent-text:#ffffff;--danger:#d64545;--warn:#e8872b;--warn-bg:#fff3e4;
-  --ok:#2e9e5b;--ok-bg:#e5f6ec;--shadow:0 2px 10px rgba(30,40,70,.08);
+  --ok:#2e9e5b;--ok-bg:#e5f6ec;--ok-ink:#fff;--prog:var(--ok);--shadow:0 2px 10px rgba(30,40,70,.08);
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
   color-scheme:light;
 }
@@ -33,6 +33,17 @@
   --border:#2c3341;--accent:#6b9bff;--accent-text:#0d1320;--danger:#ff7a7a;--warn:#f0a050;--warn-bg:#3a2b19;
   --ok:#5cd08a;--ok-bg:#16301f;--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark;
 }
+/* renk paletleri (Faz A): data-pal=kiz|erkek; açık/koyu mod data-theme ile birlikte çalışır */
+:root[data-pal="kiz"]{--bg:#F8F2FD;--surface:#FFFFFF;--surface2:#EFE6FA;--text:#3B2A5C;--muted:#6B5A8A;--muted-fill:#E3D6F3;--border:#D9C8F2;--accent:#6F4FBF;--accent-text:#FFFFFF;--ok:#B8286E;--ok-bg:#FCE4F0;--ok-ink:#FFFFFF;--prog:linear-gradient(90deg,#9B7FD6,#6F4FBF);--shadow:0 2px 10px rgba(80,50,140,.10);color-scheme:light;}
+:root[data-pal="erkek"]{--bg:#EEF4FF;--surface:#FFFFFF;--surface2:#E1EBFC;--text:#0F2447;--muted:#4A5F85;--muted-fill:#D3E0F7;--border:#C9D8F3;--accent:#1F4FD8;--accent-text:#FFFFFF;--ok:#0A7480;--ok-bg:#DDF5F7;--ok-ink:#FFFFFF;--prog:linear-gradient(90deg,#3B8BEB,#1F4FD8);--shadow:0 2px 10px rgba(20,60,160,.12);color-scheme:light;}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"])[data-pal="kiz"]{--bg:#1A1325;--surface:#251B35;--surface2:#30244A;--text:#F1E9FB;--muted:#B8A8D4;--muted-fill:#3E2F5A;--border:#3E2F5A;--accent:#B79CF0;--accent-text:#1A1325;--ok:#F58FBC;--ok-bg:#3A1B2E;--ok-ink:#1A1325;--prog:linear-gradient(90deg,#9B7FD6,#F4A6C8);--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark;}
+  :root:not([data-theme="light"])[data-pal="erkek"]{--bg:#0C1424;--surface:#14203A;--surface2:#1C2B4D;--text:#E6EEFF;--muted:#9DB0D4;--muted-fill:#263A63;--border:#263A63;--accent:#6FA2FF;--accent-text:#0A1630;--ok:#3CD3DF;--ok-bg:#0F3038;--ok-ink:#0A1630;--prog:linear-gradient(90deg,#3B8BEB,#12B5C4);--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark;}
+}
+:root[data-theme="dark"][data-pal="kiz"]{--bg:#1A1325;--surface:#251B35;--surface2:#30244A;--text:#F1E9FB;--muted:#B8A8D4;--muted-fill:#3E2F5A;--border:#3E2F5A;--accent:#B79CF0;--accent-text:#1A1325;--ok:#F58FBC;--ok-bg:#3A1B2E;--ok-ink:#1A1325;--prog:linear-gradient(90deg,#9B7FD6,#F4A6C8);--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark;}
+:root[data-theme="dark"][data-pal="erkek"]{--bg:#0C1424;--surface:#14203A;--surface2:#1C2B4D;--text:#E6EEFF;--muted:#9DB0D4;--muted-fill:#263A63;--border:#263A63;--accent:#6FA2FF;--accent-text:#0A1630;--ok:#3CD3DF;--ok-bg:#0F3038;--ok-ink:#0A1630;--prog:linear-gradient(90deg,#3B8BEB,#12B5C4);--shadow:0 2px 10px rgba(0,0,0,.4);color-scheme:dark;}
+:root[data-theme="light"][data-pal="kiz"]{--bg:#F8F2FD;--surface:#FFFFFF;--surface2:#EFE6FA;--text:#3B2A5C;--muted:#6B5A8A;--muted-fill:#E3D6F3;--border:#D9C8F2;--accent:#6F4FBF;--accent-text:#FFFFFF;--ok:#B8286E;--ok-bg:#FCE4F0;--ok-ink:#FFFFFF;--prog:linear-gradient(90deg,#9B7FD6,#6F4FBF);--shadow:0 2px 10px rgba(80,50,140,.10);color-scheme:light;}
+:root[data-theme="light"][data-pal="erkek"]{--bg:#EEF4FF;--surface:#FFFFFF;--surface2:#E1EBFC;--text:#0F2447;--muted:#4A5F85;--muted-fill:#D3E0F7;--border:#C9D8F3;--accent:#1F4FD8;--accent-text:#FFFFFF;--ok:#0A7480;--ok-bg:#DDF5F7;--ok-ink:#FFFFFF;--prog:linear-gradient(90deg,#3B8BEB,#1F4FD8);--shadow:0 2px 10px rgba(20,60,160,.12);color-scheme:light;}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;overflow-x:hidden;min-width:0}
@@ -125,7 +136,7 @@ dialog.modal::backdrop{background:rgba(0,0,0,.5)}
 .menu{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:6px;min-width:180px}
 .menu-item{display:block;width:100%;min-height:48px;font-size:17px;text-align:left;padding:0 12px;border:0;background:transparent;border-radius:8px;cursor:pointer}
 .menu-item:hover{background:var(--surface2)}.menu-item.danger{color:var(--danger)}
-#toasts{position:fixed;left:0;right:0;bottom:calc(16px + var(--sab));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:100;pointer-events:none;padding:0 12px}
+#toasts{position:fixed;left:0;right:0;bottom:calc(16px + var(--sab));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:160;pointer-events:none;padding:0 12px}
 .toast{pointer-events:auto;background:#222a38;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.3);max-width:min(520px,100%);display:flex;gap:12px;align-items:center}
 .toast.error{background:#b83a3a}.toast.success{background:#23814a}
 .toast button{background:transparent;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:8px;min-height:36px;padding:0 10px;cursor:pointer}
@@ -167,7 +178,7 @@ h1{font-size:24px}
 .tinfo{flex:1;min-width:0}
 .ttitle{font-size:18px;font-weight:700;overflow-wrap:anywhere;line-height:1.3}
 .tsub{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
-.check{flex:none;width:48px;height:48px;border-radius:50%;border:3px solid var(--muted);background:var(--surface);color:#fff;font-size:26px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.check{flex:none;width:48px;height:48px;border-radius:50%;border:3px solid var(--muted);background:var(--surface);color:var(--ok-ink);font-size:26px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
 .check.on{background:var(--ok);border-color:var(--ok)}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}
 .task.pop{animation:pop .45s ease}
@@ -195,6 +206,20 @@ h1{font-size:24px}
 .grouphead{font-size:20px;margin:18px 0 8px}
 .bookcard{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-left:8px solid var(--sc,var(--muted));border-radius:16px;padding:12px;margin-bottom:10px;cursor:pointer;min-width:0;box-shadow:var(--shadow)}
 .bookcard.arch{opacity:.6}
+.subjgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 16px}
+@media (min-width:700px){.subjgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.subjcard{min-height:112px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:6px;padding:12px;text-align:left;background:var(--surface);border:1px solid var(--border);border-top:6px solid var(--sc,var(--muted));border-radius:18px;box-shadow:var(--shadow);cursor:pointer;color:var(--text)}
+.subjcard .sh{display:flex;align-items:center;gap:8px;width:100%;min-width:0}
+.subjcard .se{font-size:26px;flex:none}
+.subjcard .sn{font-size:18px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.subjcard .bar{width:100%}
+.subjcard .ss{font-size:14px;color:var(--muted);display:flex;justify-content:space-between;gap:6px;width:100%;flex-wrap:wrap}
+.subjcard.other{border-top-color:var(--muted);color:var(--muted)}
+.btn.dashed{border:2px dashed var(--border);background:transparent;min-height:48px;width:100%;color:var(--muted);font-size:16px}
+.bookhead{display:flex;align-items:center;gap:10px;margin:4px 0 12px;min-width:0}
+.bookhead h1{font-size:24px;min-width:0;overflow-wrap:anywhere}
+.subjsum{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-left:8px solid var(--sc,var(--muted));border-radius:16px;padding:12px 16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.subjsum .bigpct{font-size:34px;font-weight:800;line-height:1.1;flex:none}
 .bbar{display:flex;align-items:center;gap:10px;margin-top:6px}
 .bbar .pct{min-width:48px;text-align:right}
 .irow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border)}
@@ -246,6 +271,15 @@ input[type=file]{padding:10px 12px;min-height:48px;width:100%;border:1px solid v
 .rolegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .rolebtn{min-height:72px;border:2px solid var(--border);border-radius:16px;background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px;text-align:center}
 .rolebtn.on{border-color:var(--accent);background:var(--accent);color:var(--accent-text)}
+.palcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.palcard{min-height:96px;border:2px solid var(--border);border-radius:16px;background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px;text-align:center}
+.palcard.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.palcard .sw{display:flex;gap:6px}.palcard .sw i{width:26px;height:26px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.15)}
+#welcome{position:fixed;inset:0;z-index:150;background:var(--bg);color:var(--text);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(20px + var(--sat)) calc(16px + var(--sar)) calc(24px + var(--sab)) calc(16px + var(--sal))}
+#welcome .wbox{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px;min-width:0}
+#welcome h1{font-size:28px;overflow-wrap:anywhere}
+#welcome .wemoji{font-size:56px;line-height:1;text-align:center}
+#welcome .wcenter{text-align:center}
 .okmsg{color:var(--ok);font-weight:600}
 .vcard{margin-bottom:12px}
 .vbig{font-size:26px;font-weight:700;margin-bottom:8px;overflow-wrap:anywhere}
@@ -264,7 +298,7 @@ input[type=file]{padding:10px 12px;min-height:48px;width:100%;border:1px solid v
 .vrow .vr{min-width:48px;text-align:right}
 .btn.sharebtn{width:100%;min-height:56px;font-size:18px;margin:4px 0 12px}
 body.readonly .edit-only,body.readonly .weekmenu,body.readonly .addtask{display:none!important}
-body.readonly .bookcard,body.readonly .notebtn{pointer-events:none}
+body.readonly .notebtn{pointer-events:none}
 @media print{
   header.top,nav.tabs,.no-print,#toasts,#aibar,.btn{display:none!important}
   .print-only{display:block!important}
@@ -273,6 +307,15 @@ body.readonly .bookcard,body.readonly .notebtn{pointer-events:none}
   .card{box-shadow:none;break-inside:avoid}
 }
 </style>
+<script>
+/* renk/tema ilk boyamadan önce uygulansın (açılışta varsayılan renk parlamasın) */
+try {
+  var __s = JSON.parse(localStorage.getItem('lgsTakip.v1') || 'null'), __p = (__s && __s.profile) || {}, __r = document.documentElement;
+  var __pal = (__p.themeChoice === 'kiz' || __p.themeChoice === 'erkek') ? __p.themeChoice : (__p.gender === 'kiz' || __p.gender === 'erkek') ? __p.gender : '';
+  if (__pal) __r.setAttribute('data-pal', __pal);
+  if (__p.theme === 'light' || __p.theme === 'dark') __r.setAttribute('data-theme', __p.theme);
+} catch (e) { /* yoksay */ }
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -609,7 +652,7 @@ const defShort = s => s.shortName || SUBJ_SHORT[s.lgsSubjectId] || String(s.name
 function defaultState() {
   return {
     version: 1,
-    profile: { studentName: '', examDate: null, dailyMinutes: { 0: 120, 1: 120, 2: 120, 3: 120, 4: 120, 5: 240, 6: 180 }, theme: 'auto' },
+    profile: { name: '', gender: '', themeChoice: '', skipped: false, studentName: '', examDate: null, dailyMinutes: { 0: 120, 1: 120, 2: 120, 3: 120, 4: 120, 5: 240, 6: 180 }, theme: 'auto' },
     settings: { apiKey: '', model: 'claude-sonnet-5-5', dataUrl: '', analysisYears: null, useWebSearch: true },
     subjects: embedded.subjects.map((s, i) => ({ id: s.id, name: s.name, shortName: SUBJ_SHORT[s.id] || s.name.slice(0, 12), emoji: SUBJ_EMOJI[s.id] || '📘', color: s.color, lgsSubjectId: s.id, visible: true, order: i })),
     books: [], topicOverrides: {}, activity: [], plans: {},
@@ -625,6 +668,8 @@ function migrateState(s) {
   m.version = 1;
   m.profile = Object.assign({}, base.profile, s.profile || {});
   m.profile.dailyMinutes = Object.assign({}, base.profile.dailyMinutes, (s.profile || {}).dailyMinutes || {});
+  m.profile.name = String(m.profile.name || '').trim().slice(0, 30); m.profile.studentName = String(m.profile.studentName || '');
+  m.profile.gender = ['kiz', 'erkek'].includes(m.profile.gender) ? m.profile.gender : ''; m.profile.themeChoice = ['kiz', 'erkek'].includes(m.profile.themeChoice) ? m.profile.themeChoice : ''; m.profile.skipped = m.profile.skipped === true;
   m.settings = Object.assign({}, base.settings, s.settings || {});
   for (const k of ['subjects', 'books', 'activity']) if (!Array.isArray(m[k])) m[k] = base[k];
   m.subjects = m.subjects.filter(x => x && typeof x === 'object' && x.id);
@@ -1022,7 +1067,8 @@ function dayInfo(key) { const ws = weekStartKey(parseKey(key)); const d = daysBe
 function weekSoFar() { const l = (state.plans[weekStartKey(new Date())]?.sessions || []).filter(x => x.day <= todayIdx()); return { n: l.length, done: l.filter(x => x.done).length }; }
 function reportText() {
   const t = todayKey(), di = dayInfo(t), days = daysToExam(), sofar = weekSoFar();
-  const lines = [`📅 ${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })} — ${di.list.length ? `${di.done}/${di.list.length} görev ✔` : 'bugün için program yok'}`];
+  const nm = heroName();
+  const lines = [`📅 ${nm ? nm + ' · ' : ''}${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })} — ${di.list.length ? `${di.done}/${di.list.length} görev ✔` : 'bugün için program yok'}`];
   di.list.forEach(s => { const b = s.bookId ? state.books.find(x => x.id === s.bookId) : null; lines.push(`${s.done ? '✅' : '⬜'} ${subjShort(s.subjectId)}: ${s.title || subjShort(s.subjectId)}${b ? ' — ' + b.title : ''}`); });
   lines.push(`Bu hafta (bugüne kadar): ${sofar.done}/${sofar.n}` + (days != null && days >= 0 ? ` · LGS'ye ${days} gün` : ''));
   return lines.join('\n');
@@ -1038,14 +1084,14 @@ function viewVeli(root) {
   const t = todayKey(), ws = weekStartKey(new Date()), days = daysToExam();
   const di = dayInfo(t), yi = dayInfo(addDays(t, -1)), pn = planNum(state.plans[ws]);
   page.appendChild(el('section', { class: 'hero' }, [
-    el('div', { class: 'row between' }, [el('h1', { text: '👨‍👩‍👦 Veli sayfası' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
+    el('div', { class: 'row between' }, [el('h1', { text: heroName() ? `👨‍👩‍👦 ${heroName()} · Veli sayfası` : '👨‍👩‍👦 Veli sayfası' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
     isReader() ? el('div', { class: 'small muted', text: sync.remoteUpdatedAt ? `Son güncelleme: ${fmtWhen(sync.remoteUpdatedAt)} (öğrencinin cihazından)` : 'Henüz veri alınmadı.' }) : null,
     isReader() && sync.status === 'err' ? el('div', { class: 'small err', text: sync.err }) : null]));
   // bugün
   const today = el('section', { class: 'card vcard' }, [el('h2', { text: `Bugün · ${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })}` })]);
   if (!di.list.length) today.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '🌤️' }), el('p', { text: 'Bugün için program yok.' })]));
   else {
-    today.appendChild(el('div', { class: 'vbig', text: `${di.done} / ${di.list.length} görev bitti` }));
+    today.appendChild(el('div', { class: 'vbig', text: heroName() ? `${heroName()} bugün ${di.done} / ${di.list.length} görevi bitirdi` : `${di.done} / ${di.list.length} görev bitti` }));
     today.appendChild(progBar(di.done / di.list.length, 'var(--ok)'));
     const note = state.plans[ws]?.dayNotes?.[di.d]; if (note) today.appendChild(el('p', { class: 'small muted', text: '📝 ' + note }));
     di.list.forEach(s => today.appendChild(el('div', { class: 'vtask' + (s.done ? ' isdone' : ''), style: `--sc:${s.subjectId ? subjectColor(s.subjectId) : 'var(--muted)'}` }, [
@@ -1058,7 +1104,7 @@ function viewVeli(root) {
   if (!yi.list.length) yc.appendChild(el('p', { class: 'muted', text: 'Dün için program yoktu.' }));
   else {
     const miss = yi.list.filter(s => !s.done);
-    yc.appendChild(el('p', { class: 'vbig', style: 'font-size:20px', text: `Dün ${yi.done}/${yi.list.length}${yi.done === yi.list.length ? ' ✔' : ''}` }));
+    yc.appendChild(el('p', { class: 'vbig', style: 'font-size:20px', text: heroName() ? `${heroName()} dün ${yi.done}/${yi.list.length} görevi bitirdi${yi.done === yi.list.length ? ' ✔' : ''}` : `Dün ${yi.done}/${yi.list.length}${yi.done === yi.list.length ? ' ✔' : ''}` }));
     if (miss.length) yc.appendChild(el('details', { class: 'det' }, [el('summary', { text: `Yapılmayanlar (${miss.length})` }), el('ul', null, miss.map(s => el('li', { text: `${subjEmoji(s.subjectId)} ${s.title || subjShort(s.subjectId)}` })))]));
   }
   page.appendChild(yc);
@@ -1714,7 +1760,7 @@ function popMenu(anchor, items) {
 
 /* router + chrome */
 const todayIdx = () => (new Date().getDay() + 6) % 7;
-const ui = { programWeek: weekStartKey(new Date()), selDay: todayIdx(), preview: null, justDone: null, analysisSubject: 'all', analysisSort: { key: 'avg', dir: -1 }, analysisByYear: false, normalize: false, bookForm: { subjectId: '', title: '', count: '', topics: '', showTopics: false } };
+const ui = { programWeek: weekStartKey(new Date()), selDay: todayIdx(), preview: null, justDone: null, analysisSubject: 'all', analysisSort: { key: 'avg', dir: -1 }, analysisByYear: false, normalize: false, bookForm: { subjectId: '', title: '', count: '', topics: '', showTopics: false }, bookFormOpen: false, bookViewKey: '' };
 const STATUS_LABEL = { done: 'Bitti', inProgress: 'Devam', notStarted: 'Başlanmadı' };
 const card = (title, kids, cls = '') => el('section', { class: 'card ' + cls }, [title ? el('h2', { text: title }) : null, kids]);
 const btn = (label, onClick, cls = '', extra) => el('button', Object.assign({ type: 'button', class: 'btn ' + cls, onClick }, extra || {}), label);
@@ -1742,13 +1788,17 @@ function normalizeHash() {
   else if (p[0] === 'analiz') target = '#lgs';
   else if (p[0] === 'ders') {
     let id = ''; try { id = decodeURIComponent(p.slice(1).join('/')); } catch (e) { /* yoksay */ }
-    if (subjectState(id)) { state.ui.bookSubject = id; saveState(); }
-    target = '#kitaplar';
+    target = subjectState(id) ? '#kitaplar/' + encodeURIComponent(id) : '#kitaplar';
   } else if (!ROUTES.includes(p[0])) target = '#program';
   if (target && target !== location.hash) { try { history.replaceState(null, '', target); } catch (e) { location.hash = target; } }
 }
-const parseRoute = () => { const n = (location.hash || '').replace(/^#/, '').split('/')[0]; return { name: ROUTES.includes(n) ? n : 'program' }; };
+const parseRoute = () => { const p = (location.hash || '').replace(/^#/, '').split('/'); let arg = ''; try { arg = decodeURIComponent(p.slice(1).join('/')); } catch (e) { /* yoksay */ } return { name: ROUTES.includes(p[0]) ? p[0] : 'program', arg }; };
+const kidName = () => (state.profile.name || '').trim();
+const heroName = () => (state.profile.name || state.profile.studentName || '').trim();
+const palette = () => { const p = state.profile; return ['kiz', 'erkek'].includes(p.themeChoice) ? p.themeChoice : ['kiz', 'erkek'].includes(p.gender) ? p.gender : ''; };
+const praiseWord = () => state.profile.gender === 'kiz' ? 'Aferin kızım' : state.profile.gender === 'erkek' ? 'Aferin oğlum' : 'Aferin';
 function applyTheme() {
+  const pal = palette(); if (welcomeEl && welcomeEl.isConnected && needWelcome()) { /* karşılama açıkken renk önizlemesi korunur */ } else if (pal) document.documentElement.setAttribute('data-pal', pal); else document.documentElement.removeAttribute('data-pal');
   const t = state.profile.theme;
   if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
 }
@@ -1780,6 +1830,7 @@ function rerender(keepScroll = true) {
   catch (e) { console.error(e); v.appendChild(card('Hata', 'Görünüm çizilirken bir hata oluştu: ' + e.message)); }
   flushCharts();
   window.scrollTo(0, keepScroll ? y : 0);
+  renderWelcome();
 }
 function changed() { if (readerGuard()) return; saveState(); rerender(true); }
 
@@ -1856,9 +1907,9 @@ function viewProgram(root) {
   const pn = planNum(plan); const days = daysToExam();
   // 1 üst şerit
   page.appendChild(el('section', { class: 'hero no-print' }, [
-    el('div', { class: 'row between' }, [el('h1', { text: state.profile.studentName ? `Merhaba ${state.profile.studentName} 👋` : 'Merhaba 👋' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
+    el('div', { class: 'row between' }, [el('h1', { text: heroName() ? `Merhaba ${heroName()} 👋` : 'Merhaba 👋' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
     el('div', { class: 'sub', text: pn.n ? `${ws === curWs ? 'Bu hafta' : 'Seçili hafta'} ${pn.done} / ${pn.n} görev ✔` : (ws === curWs ? 'Bu hafta henüz görev yok' : 'Bu haftada görev yok') }),
-    progBar(pn.n ? pn.done / pn.n : 0, 'var(--ok)')]));
+    progBar(pn.n ? pn.done / pn.n : 0, 'var(--prog)')]));
   // 2 hafta seçici
   page.appendChild(el('div', { class: 'weeknav no-print' }, [
     el('button', { type: 'button', class: 'arrow', 'aria-label': 'Önceki hafta', text: '‹', onClick: () => setWeek(addDays(ws, -7)) }),
@@ -1942,7 +1993,7 @@ function toggleDone(ws, s) {
   changed(); ui.justDone = null;
   if (!s.done) return;
   if (list.length && list.every(x => x.done)) showToast(ws === weekStartKey(new Date()) && s.day === todayIdx() ? 'Bugünkü programı bitirdin! 🌟' : 'Bu günün programını bitirdin! 🌟', 'success');
-  else showToast('Aferin! 🎉', 'success');
+  else showToast(praiseWord() + '! 🎉', 'success');
 }
 function weekMenuItems(ws, d) {
   const items = [
@@ -2043,7 +2094,7 @@ function setItemDone(book, item, val, redraw) {
   item.done = val; recordActivity(book.id, item.id, delta);
   item.completedAt = itemComplete(item) ? new Date().toISOString() : null;
   changed(); redraw && redraw();
-  if (!was && itemComplete(item)) showToast(`Aferin! 🎉 ${item.title} bitti`, 'success');
+  if (!was && itemComplete(item)) showToast(`${praiseWord()}! 🎉 ${item.title} bitti`, 'success');
 }
 async function downloadBackup() {
   const name = `lgs-takip-yedek-${todayKey()}.json`, obj = exportBackup();
@@ -2058,20 +2109,17 @@ function unitTally(books) {
   books.forEach(b => b.items.forEach(it => { const u = it.unit || 'konu'; t[u] = t[u] || [0, 0]; t[u][0] += it.done; t[u][1] += it.total; }));
   return Object.entries(t).map(([u, [a, b]]) => `${a}/${b} ${UNIT_LABEL[u] || u}`).join(' · ');
 }
-function viewBooks(root) {
-  const page = el('div', { class: 'page' }); root.appendChild(page);
-  const subjects = visibleSubjects();
-  page.appendChild(el('h1', { class: 'ptitle', text: '📚 Kitaplarım' }));
-  let sel = state.ui.bookSubject;
-  if (sel !== 'all' && !subjects.some(s => s.id === sel)) sel = 'all';
-  // 1 kitap ekle
+/* kitap ekle formu: fixedSubject verilirse ders çipleri yok; extras = forma eklenebilecek ek düğmeler (Faz B: fotoğraf) */
+function bookAddSection(fixedSubject, subjects, extras = []) {
   const f = ui.bookForm;
-  if (f.subjectId && !subjects.some(s => s.id === f.subjectId)) f.subjectId = '';
-  if (!f.subjectId && sel !== 'all') f.subjectId = sel;
+  if (fixedSubject) f.subjectId = fixedSubject; else if (f.subjectId && !subjects.some(s => s.id === f.subjectId)) f.subjectId = '';
   const nameIn = el('input', { type: 'text', value: f.title, placeholder: 'Örn. Altın Kural Soru Bankası', maxlength: '100', 'aria-label': 'Kitabın adı' }); nameIn.addEventListener('input', () => { f.title = nameIn.value; });
   const cntIn = el('input', { type: 'number', min: '1', max: '9999', inputmode: 'numeric', value: f.count, placeholder: 'İstersen yaz', 'aria-label': 'Kaç test veya bölüm var' }); cntIn.addEventListener('input', () => { f.count = cntIn.value; });
   const topicsTa = el('textarea', { placeholder: 'Üslü İfadeler | 12\nKareköklü İfadeler | 10\nGenel Tekrar', 'aria-label': 'Konular' }); topicsTa.value = f.topics; topicsTa.addEventListener('input', () => { f.topics = topicsTa.value; });
   const topicsBox = el('div', { class: f.showTopics ? '' : 'hidden' }, [el('p', { class: 'small muted', text: 'Her satıra bir konu yaz. İstersen yanına | ve test sayısını ekle.' }), topicsTa]);
+  const form = el('section', { class: 'card addbook edit-only' + (ui.bookFormOpen ? '' : ' hidden') });
+  const openBtn = el('button', { type: 'button', class: 'btn dashed addbook-open edit-only' + (ui.bookFormOpen ? ' hidden' : ''), text: '＋ Kitap ekle', onClick: () => { ui.bookFormOpen = true; form.classList.remove('hidden'); openBtn.classList.add('hidden'); nameIn.focus(); } });
+  const close = () => { ui.bookFormOpen = false; form.classList.add('hidden'); openBtn.classList.remove('hidden'); };
   const addBtn = el('button', { type: 'button', class: 'btn primary addtask', text: 'Kitabı ekle', onClick: () => {
     const sid = f.subjectId; if (!sid) { showToast('Önce dersi seç 👆', 'error'); return; }
     const title = f.title.trim(); if (!title) { showToast('Kitabın adını yaz ✏️', 'error'); nameIn.focus(); return; }
@@ -2079,34 +2127,70 @@ function viewBooks(root) {
     let items = f.topics.trim() ? parseBulk(f.topics, lsx ? lsx.topics : []) : [];
     if (!items.length) { const n = Math.min(9999, parseInt(f.count, 10) || 0); items = [n >= 1 ? { id: uid(), title: 'Testler', lgsTopicId: null, unit: 'test', total: n, done: 0, completedAt: null } : { id: uid(), title: 'Kitap', lgsTopicId: null, unit: 'konu', total: 1, done: 0, completedAt: null }]; }
     state.books.push({ id: uid(), subjectId: sid, title, publisher: '', kind: 'karma', createdAt: new Date().toISOString(), archived: false, items });
-    state.ui.bookSubject = sid; f.title = ''; f.count = ''; f.topics = '';
+    f.title = ''; f.count = ''; f.topics = ''; ui.bookFormOpen = false;
     changed(); showToast(`📚 Kitap ${subjShort(sid)} dersine eklendi`, 'success');
   } });
-  page.appendChild(el('section', { class: 'card addbook edit-only' }, [
-    el('h2', { text: '➕ Kitap ekle' }),
-    el('div', { class: 'flabel', text: 'Hangi ders?' }), chipStrip(subjectOptions(subjects), f.subjectId, id => { f.subjectId = id; }, 'big'),
+  form.append(el('h2', { text: '➕ Kitap ekle' }),
+    fixedSubject ? null : el('div', { class: 'flabel', text: 'Hangi ders?' }), fixedSubject ? null : chipStrip(subjectOptions(subjects), f.subjectId, id => { f.subjectId = id; }, 'big'),
     el('div', { class: 'flabel', text: 'Kitabın adı' }), nameIn,
     el('div', { class: 'flabel', text: 'Kaç test / bölüm var?' }), cntIn,
-    el('button', { type: 'button', class: 'linkbtn', text: 'Konuları da yazmak ister misin?', onClick: () => { f.showTopics = !f.showTopics; topicsBox.classList.toggle('hidden', !f.showTopics); } }), topicsBox, addBtn]));
-  // 2 ders seçici
-  page.appendChild(el('div', { class: 'flabel', style: 'margin-top:18px', text: 'Hangi dersin kitapları?' }));
-  page.appendChild(chipStrip(subjectOptions(subjects, [{ id: 'all', label: 'Hepsi', emoji: '📚' }]), sel, id => { state.ui.bookSubject = id; if (id !== 'all') ui.bookForm.subjectId = id; changed(); }, 'big'));
-  // 3 özet
-  const books = sel === 'all' ? state.books : state.books.filter(b => b.subjectId === sel);
-  const live = books.filter(b => !b.archived);
-  const sp = sel === 'all' ? totalProgress() : subjectProgress(sel);
-  const pieHost = el('div');
-  const col = sel === 'all' ? 'var(--ok)' : subjectColor(sel);
-  renderPie(pieHost, [{ label: 'Biten', value: sp.sum, color: col }, { label: 'Kalan', value: Math.max(0, sp.items - sp.sum), color: 'var(--muted-fill)' }], { center: sp.items ? fmtPct(sp.frac) : '—' });
-  page.appendChild(el('section', { class: 'card summary' }, [pieHost, el('div', { class: 'grow' }, [el('div', { class: 'sumtitle', text: sel === 'all' ? 'Tüm dersler' : `${subjEmoji(sel)} ${subjShort(sel)}` }), el('div', { text: `${live.length} kitap${unitTally(live) ? ' · ' + unitTally(live) : ''}` })])]));
-  // 4/5 kitap kartları
-  if (!books.length) page.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '📚' }), el('p', { text: 'Henüz kitap yok. Yukarıdan ilk kitabını ekle 👆' })]));
-  const groups = sel === 'all' ? [...state.subjects.slice().sort((a, b) => a.order - b.order).map(s => ({ id: s.id, list: books.filter(b => b.subjectId === s.id) })), { id: '__other', list: books.filter(b => !subjectState(b.subjectId)) }] : [{ id: sel, list: books }];
-  groups.forEach(g => {
-    if (!g.list.length) return;
-    if (sel === 'all') page.appendChild(el('h3', { class: 'grouphead', text: g.id === '__other' ? '📘 Diğer' : `${subjEmoji(g.id)} ${subjShort(g.id)}` }));
-    g.list.slice().sort((a, b) => (!!a.archived - !!b.archived) || String(a.createdAt).localeCompare(String(b.createdAt))).forEach(b => page.appendChild(bookCard(b)));
-  });
+    el('button', { type: 'button', class: 'linkbtn', text: 'Konuları da yazmak ister misin?', onClick: () => { f.showTopics = !f.showTopics; topicsBox.classList.toggle('hidden', !f.showTopics); } }), topicsBox,
+    ...extras, addBtn, el('button', { type: 'button', class: 'btn', style: 'width:100%;margin-top:8px', text: 'Vazgeç', onClick: close }));
+  return el('div', { class: 'addwrap' }, [openBtn, form]);
+}
+const OTHER_ID = '__other';
+function viewBooks(root) {
+  const page = el('div', { class: 'page' }); root.appendChild(page);
+  const subjects = visibleSubjects();
+  const arg = parseRoute().arg;
+  const hiddenBooks = state.books.filter(b => !subjects.some(s => s.id === b.subjectId));   /* gizli dersin ya da dersi olmayan kitaplar */
+  const sel = (subjects.some(s => s.id === arg) || (subjectState(arg) && state.books.some(b => b.subjectId === arg)) || (arg === OTHER_ID && hiddenBooks.length)) ? arg : '';
+  if (arg && !sel) { try { history.replaceState(null, '', '#kitaplar'); } catch (e) { /* yoksay */ } }
+  if (sel && state.ui.bookSubject !== sel) { state.ui.bookSubject = sel; saveState(); }
+  const key = sel || 'home'; if (ui.bookViewKey !== key) { ui.bookViewKey = key; ui.bookFormOpen = false; }
+  if (!sel) {
+    ui.fromHome = false;
+    // ana sayfa: ders kartları
+    const total = state.books.filter(b => !b.archived).length;
+    page.appendChild(el('div', { class: 'row between wrapflex' }, [el('h1', { class: 'ptitle', text: '📚 Kitaplarım' }), el('span', { class: 'badge-count', text: `${total} kitap` })]));
+    const grid = el('div', { class: 'subjgrid' });
+    subjects.forEach(s => {
+      const sp = subjectProgress(s.id);
+      grid.appendChild(el('button', { type: 'button', class: 'subjcard', 'data-sid': s.id, style: `--sc:${s.color}`, onClick: () => { ui.fromHome = true; navigate('#kitaplar/' + encodeURIComponent(s.id)); } }, [
+        el('span', { class: 'sh' }, [el('span', { class: 'se', text: subjEmoji(s.id) }), el('span', { class: 'sn', text: subjShort(s.id) })]),
+        el('span', { class: 'ss' }, [el('span', { text: `${sp.books} kitap` }), el('b', { text: `${fmtPct(sp.frac)} bitti` })]),
+        progBar(sp.frac, s.color)]));
+    });
+    if (hiddenBooks.length) {
+      const live = hiddenBooks.filter(b => !b.archived);
+      grid.appendChild(el('button', { type: 'button', class: 'subjcard other', 'data-sid': OTHER_ID, onClick: () => { ui.fromHome = true; navigate('#kitaplar/' + OTHER_ID); } }, [
+        el('span', { class: 'sh' }, [el('span', { class: 'se', text: '📦' }), el('span', { class: 'sn', text: 'Gizli dersler / Diğer' })]),
+        el('span', { class: 'ss' }, [el('span', { text: `${live.length} kitap` })])]));
+    }
+    page.appendChild(grid);
+    if (!isReader()) page.appendChild(bookAddSection(null, subjects));
+    return;
+  }
+  const goBack = () => { if (ui.fromHome) history.back(); else location.replace('#kitaplar'); };
+  if (sel === OTHER_ID) {
+    page.appendChild(el('div', { class: 'bookhead' }, [btn('‹ Dersler', goBack, 'sm back'), el('h1', { text: '📦 Gizli dersler / Diğer' })]));
+    state.subjects.slice().sort((a, b) => a.order - b.order).map(s => s.id).concat(['']).forEach(sid => {
+      const list = hiddenBooks.filter(b => sid ? b.subjectId === sid : !subjectState(b.subjectId)).sort((a, b) => (!!a.archived - !!b.archived) || String(a.createdAt).localeCompare(String(b.createdAt)));
+      if (!list.length) return;
+      page.appendChild(el('h3', { class: 'grouphead', text: sid ? `${subjEmoji(sid)} ${subjShort(sid)} (gizli)` : '📘 Dersi olmayan kitaplar' }));
+      list.forEach(b => page.appendChild(bookCard(b)));
+    });
+    return;
+  }
+  // ders sayfası
+  const st = subjectState(sel), sp = subjectProgress(sel);
+  page.appendChild(el('div', { class: 'bookhead' }, [btn('‹ Dersler', goBack, 'sm back'), el('h1', { text: `${subjEmoji(sel)} ${subjShort(sel)}` })]));
+  page.appendChild(el('section', { class: 'subjsum', style: `--sc:${st?.color || 'var(--muted)'}` }, [el('div', { class: 'bigpct', text: sp.items ? fmtPct(sp.frac) : '—' }),
+    el('div', { class: 'grow' }, [el('div', { text: `${sp.books} kitap${sp.items ? ' · ' + sp.doneItems + '/' + sp.items + ' bölüm' : ''}` }), progBar(sp.frac, st?.color)])]));
+  const books = state.books.filter(b => b.subjectId === sel).sort((a, b) => (!!a.archived - !!b.archived) || String(a.createdAt).localeCompare(String(b.createdAt)));
+  if (!books.length) page.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '📚' }), el('p', { text: 'Bu derste henüz kitap yok' })]));
+  books.forEach(b => page.appendChild(bookCard(b)));
+  if (!isReader()) page.appendChild(bookAddSection(sel, subjects));
 }
 function bookCard(b) {
   const bp = bookProgress(b); const st = subjectState(b.subjectId);
@@ -2137,7 +2221,20 @@ function itemRow(b, it, redraw) {
   row.appendChild(el('div', { style: 'flex:1 1 100%' }, progBar(itemFraction(it), null, 'mini')));
   return row;
 }
+function bookSheetReadonly(b) {
+  const bp = bookProgress(b), st = subjectState(b.subjectId);
+  const body = el('div', { class: 'stack', 'data-readonly': '1' }, [
+    el('div', { class: 'small muted', text: `${subjShort(b.subjectId)} · ${bp.doneItems}/${bp.totalItems} bölüm bitti` }),
+    el('div', { class: 'row' }, [el('div', { class: 'grow' }, progBar(bp.frac, st?.color)), el('b', { text: fmtPct(bp.frac) })])]);
+  if (!b.items.length) body.appendChild(el('p', { class: 'muted', text: 'Bu kitapta henüz bölüm yok.' }));
+  b.items.forEach(it => body.appendChild(el('div', { class: 'irow' }, [
+    el('div', { class: 'ititle' + (itemComplete(it) ? ' dn' : ''), text: (itemComplete(it) ? '✓ ' : '') + it.title }),
+    el('b', { class: 'small', text: `${it.done} / ${it.total} ${UNIT_LABEL[it.unit] || ''}`.trim() }),
+    el('div', { style: 'flex:1 1 100%' }, progBar(itemFraction(it), null, 'mini'))])));
+  openModal({ title: `${subjEmoji(b.subjectId)} ${b.title}`, sheet: true, body, buttons: [{ label: 'Kapat', cls: 'primary' }] });
+}
 function bookSheet(b) {
+  if (isReader()) return bookSheetReadonly(b);
   const body = el('div', { class: 'stack' });
   const draw = () => {
     body.replaceChildren();
@@ -2445,6 +2542,44 @@ function viewLgs(root) {
   page.appendChild(info);
 }
 
+/* ---- karşılama ekranı (ilk açılış) ---- */
+const GENDERS = [['kiz', '👧 Kız'], ['erkek', '👦 Erkek'], ['', '🙂 Söylemek istemiyorum']];
+const PALS = { kiz: ['#F8F2FD', '#D9C8F2', '#F4A6C8', '#9B7FD6'], erkek: ['#EEF4FF', '#1F4FD8', '#3B8BEB', '#12B5C4'] };
+const swatches = cols => el('span', { class: 'sw', 'aria-hidden': 'true' }, cols.map(c => el('i', { style: 'background:' + c })));
+const needWelcome = () => !isReader() && !state.profile.name && !state.profile.skipped;
+let welcomeEl = null;
+function renderWelcome() {
+  const want = needWelcome();
+  for (const sel of ['header.top', '.wrap', 'nav.tabs']) { const n = document.querySelector(sel); if (n) n.inert = want; }
+  if (!want) { if (welcomeEl) { welcomeEl.remove(); welcomeEl = null; } return; }
+  if (welcomeEl && welcomeEl.isConnected) return;
+  let gender = null, theme = '';
+  const nameIn = el('input', { type: 'text', value: state.profile.studentName || '', maxlength: '30', autocomplete: 'off', placeholder: 'Adını yaz', 'aria-label': 'Adın' });
+  const go = el('button', { type: 'button', class: 'btn primary lg', text: 'Başla 🚀', disabled: true });
+  const gBox = el('div', { class: 'rolegrid' }), tBox = el('div', { class: 'palcards hidden', role: 'group', 'aria-label': 'Tema seç' }), tHead = el('div', { class: 'flabel hidden', text: 'Hangi renkleri seversin?' });
+  const preview = () => { const pal = gender === 'kiz' || gender === 'erkek' ? gender : theme; if (pal) document.documentElement.setAttribute('data-pal', pal); else document.documentElement.removeAttribute('data-pal'); };
+  const paint = () => {
+    [...gBox.children].forEach((b, i) => { const on = GENDERS[i][0] === gender; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    const ask = gender === ''; tBox.classList.toggle('hidden', !ask); tHead.classList.toggle('hidden', !ask);
+    [...tBox.children].forEach(b => { const on = b.dataset.pal === theme; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    go.disabled = !(nameIn.value.trim() && gender !== null && (gender !== '' || theme)); preview();
+  };
+  GENDERS.forEach(([v, t]) => gBox.appendChild(el('button', { type: 'button', class: 'rolebtn', style: 'min-height:56px', 'data-g': v || 'yok', text: t, onClick: () => { gender = v; if (v) theme = ''; paint(); } })));
+  [['kiz', 'Yumuşak pastel', 'Leylak, pembe, mor'], ['erkek', 'Dinamik', 'Kobalt, mavi, turkuaz']].forEach(([v, t, sub]) => tBox.appendChild(el('button', { type: 'button', class: 'palcard', 'data-pal': v, onClick: () => { theme = v; paint(); } }, [swatches(PALS[v]), el('b', { text: t }), el('span', { class: 'small muted', text: sub })])));
+  nameIn.addEventListener('input', paint);
+  go.addEventListener('click', () => {
+    const name = nameIn.value.trim().slice(0, 30); if (!name || gender === null || (gender === '' && !theme)) return;
+    const p = state.profile; p.name = name; p.studentName = name; p.gender = gender; p.themeChoice = gender === '' ? theme : ''; p.skipped = false;
+    changed(); showToast(`Hoş geldin ${name}! 🎉`, 'success');
+  });
+  const skip = el('button', { type: 'button', class: 'linkbtn wcenter', style: 'margin:0 auto', text: 'Şimdilik geç', onClick: () => { state.profile.skipped = true; applyTheme(); changed(); } });
+  welcomeEl = el('div', { id: 'welcome', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Karşılama' }, el('div', { class: 'wbox' }, [
+    el('div', { class: 'wemoji', text: '👋' }), el('h1', { class: 'wcenter', text: 'Merhaba! Seninle tanışalım' }),
+    el('div', { class: 'flabel', text: 'Adın ne?' }), nameIn,
+    el('div', { class: 'flabel', text: 'Sen kimsin?' }), gBox, tHead, tBox, go, skip]));
+  document.body.appendChild(welcomeEl); paint();
+}
+
 /* ---- ayarlar ---- */
 let deferredInstall = null;
 const EMOJI_CHOICES = ['📘', '📖', '➗', '🔬', '🏛️', '🕌', '🔤', '🧪', '📐', '🎨', '🎵', '🌍', '💻', '⚽', '🧠', '✏️'];
@@ -2454,12 +2589,15 @@ function viewSettings(root) {
   const g = el('div', { class: 'grid' }); page.appendChild(g);
   const lab = (t, n) => el('label', { class: 'f' }, [t, n]);
   const p = state.profile, st = state.settings;
-  const nameIn = el('input', { type: 'text', value: p.studentName }); nameIn.addEventListener('change', () => { p.studentName = nameIn.value.trim(); changed(); });
+  const nameIn = el('input', { type: 'text', value: heroName(), maxlength: '30', autocomplete: 'off' }); nameIn.addEventListener('change', () => { p.name = nameIn.value.trim().slice(0, 30); p.studentName = p.name; if (!p.name) p.skipped = true; changed(); });
+  const genderChips = el('div', { class: 'chips', role: 'group', 'aria-label': 'Sen kimsin?' }, GENDERS.map(([v, t]) => el('button', { type: 'button', class: 'chip' + (p.gender === v ? ' on' : ''), 'aria-pressed': String(p.gender === v), text: t, onClick: () => { p.gender = v; if (v) p.themeChoice = ''; changed(); } })));
+  const palRow = el('div', { class: 'palcards', role: 'group', 'aria-label': 'Renk teması' }, [['', 'Otomatik', null], ['kiz', 'Pastel', PALS.kiz], ['erkek', 'Dinamik', PALS.erkek]].map(([v, t, sw]) => el('button', { type: 'button', class: 'palcard' + (p.themeChoice === v ? ' on' : ''), 'aria-pressed': String(p.themeChoice === v), onClick: () => { p.themeChoice = v; changed(); } }, [sw ? swatches(sw) : el('span', { class: 'small muted', text: p.gender ? 'Seçimine göre' : 'Klasik görünüm' }), el('b', { text: t })])));
+  const profileBlock = isReader() ? el('p', { class: 'small muted', text: kidName() ? `Öğrenci: ${kidName()} (öğrencinin cihazından)` : 'Öğrenci adı henüz yok.' }) : el('div', { class: 'stack edit-only' }, [lab('Adın', nameIn), el('div', { class: 'flabel', text: 'Sen kimsin?' }), genderChips, el('div', { class: 'flabel', text: 'Renk teması' }), palRow]);
   const dateIn = el('input', { type: 'date', value: p.examDate || '' }); dateIn.addEventListener('change', () => { p.examDate = dateIn.value || null; changed(); });
   const themeSel = el('select', { value: p.theme }, [['auto', 'Otomatik'], ['light', 'Açık'], ['dark', 'Koyu']].map(([v, t]) => el('option', { value: v, text: t })));
   themeSel.addEventListener('change', () => { p.theme = themeSel.value; changed(); });
   const dmIns = DAY_NAMES.map((n, i) => { const inp = el('input', { type: 'number', min: '0', max: '1000', value: String(p.dailyMinutes[i]) }); inp.addEventListener('change', () => { p.dailyMinutes[i] = Math.max(0, parseInt(inp.value, 10) || 0); saveState(); }); return [n, inp]; });
-  g.appendChild(card('Profil', [el('div', { class: 'stack' }, [lab('Adın', nameIn), lab('LGS tarihi (boş = veriden)', dateIn), btn('Veriden sıfırla', () => { p.examDate = null; changed(); }, 'sm'), lab('Tema', themeSel),
+  g.appendChild(card('Profil', [el('div', { class: 'stack' }, [profileBlock, lab('LGS tarihi (boş = veriden)', dateIn), btn('Veriden sıfırla', () => { p.examDate = null; changed(); }, 'sm'), lab('Tema', themeSel),
     el('h3', { text: 'Otomatik öneri için günlük çalışma süren (dk)', style: 'font-size:16px' }), el('div', { class: 'formgrid' }, dmIns.map(([n, i]) => lab(n, i))),
     btn('Pazartesi değerini hafta içine uygula', () => { for (let i = 1; i < 5; i++) p.dailyMinutes[i] = p.dailyMinutes[0]; changed(); }, 'sm')])]));
   g.appendChild(syncCard());
