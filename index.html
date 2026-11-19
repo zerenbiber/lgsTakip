@@ -160,6 +160,11 @@ h1{font-size:24px}
 .dpill{flex:0 0 68px;min-height:84px;border-radius:18px;border:2px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0}
 @media (min-width:600px){.dpill{flex:1 1 0;min-width:0}}
 .dpill .dn{font-size:14px;color:var(--muted)}.dpill .dd{font-size:24px;font-weight:700;line-height:1.1}.dpill .dc{font-size:13px;color:var(--muted)}
+.dpill{position:relative}.dpill .dhico{position:absolute;top:4px;right:6px;font-size:13px;line-height:1}
+.dhband{border:2px dashed var(--accent);border-radius:14px;padding:12px 14px;margin:0 0 10px;background:var(--surface);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.dhband.off{border-color:var(--warn);background:var(--warn-bg)}.dhrow{display:flex;gap:10px;align-items:center;width:100%}.dhemoji{font-size:24px;line-height:1;flex:none}.dhband .dhbtn{min-height:44px}
+.dhafter{font-size:14px;font-weight:600;color:var(--muted);margin:10px 2px 6px}.dhwarn{font-size:13px;color:var(--warn);font-weight:600;overflow-wrap:anywhere;margin-top:2px}
+.dhnow{border:2px solid var(--accent);background:var(--surface2)}.dhnow b{overflow-wrap:anywhere}.dhgone{margin-top:0}
 .dpill.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
 .dpill.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
 .dpill.sel .dn,.dpill.sel .dc{color:inherit;opacity:.9}
@@ -592,6 +597,53 @@ const fmtNum = n => nf1.format(n);
 const fmtPct = f => '%' + nf1.format(f * 100);
 const trLower = s => String(s ?? '').toLocaleLowerCase('tr-TR');
 const normalizeTr = s => trLower(s).replace(/[\s\p{P}\p{S}]+/gu, '');
+/* ===== DERSHANE-PURE-BEGIN: dershane takvimi saf fonksiyonları (DOM/state kullanmaz; node birim testleri bu bloğu ayıklar) ===== */
+const dhP2 = n => String(n).padStart(2, '0');
+const dhMin = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(s ?? '').trim()); if (!m) return NaN; const hh = +m[1], mm = +m[2]; return hh < 24 && mm < 60 ? hh * 60 + mm : NaN; };
+const dhStr = n => dhP2(Math.floor(n / 60) % 24) + ':' + dhP2(n % 60);
+const dhKeyOk = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k));
+const dhDayKey = d => d.getFullYear() + '-' + dhP2(d.getMonth() + 1) + '-' + dhP2(d.getDate());
+const dhDayIdx = key => { const [y, m, d] = String(key).split('-').map(Number); return (new Date(y, m - 1, d).getDay() + 6) % 7; };   /* 0=Pzt…6=Paz, yerel tarih */
+/* boş/bozuk veriyi düzelt: geçersiz saat/gün atılır, aynı gündeki çakışanlardan ilki kalır; idempotent */
+function dhSanitize(d, mkId) {
+  const out = { slots: [], exceptions: {} };
+  if (!d || typeof d !== 'object') return out;
+  const seen = new Set();
+  (Array.isArray(d.slots) ? d.slots : []).forEach(x => {
+    if (!x || typeof x !== 'object' || !Number.isInteger(x.day) || x.day < 0 || x.day > 6) return;
+    const a = dhMin(x.start), b = dhMin(x.end); if (!(a >= 0 && b > a)) return;
+    if (out.slots.some(o => o.day === x.day && a < dhMin(o.end) && b > dhMin(o.start))) return;
+    let id = typeof x.id === 'string' && x.id ? x.id : (mkId ? mkId() : 'dh' + out.slots.length + '-' + x.day + a);
+    if (seen.has(id)) id = id + '-' + out.slots.length; seen.add(id);
+    if (out.slots.length < 28) out.slots.push({ id, day: x.day, start: dhStr(a), end: dhStr(b) });
+  });
+  out.slots.sort((p, q) => p.day - q.day || dhMin(p.start) - dhMin(q.start));
+  const ex = d.exceptions && typeof d.exceptions === 'object' && !Array.isArray(d.exceptions) ? d.exceptions : {};
+  Object.keys(ex).filter(k => dhKeyOk(k) && ex[k] === 'gitmedi').sort().slice(-400).forEach(k => { out.exceptions[k] = 'gitmedi'; });
+  return out;
+}
+/* o günün (haftanın günü) tüm slotları, saate göre; istisnaya bakmaz */
+const dhSlotsAll = (dh, key) => ((dh && dh.slots) || []).filter(s => s.day === dhDayIdx(key)).sort((a, b) => dhMin(a.start) - dhMin(b.start));
+const dhGitmedi = (dh, key) => !!(dh && dh.exceptions && dh.exceptions[key] === 'gitmedi');
+/* o gün gerçekten geçerli slotlar ("gitmedi" ise boş) */
+const dhSlotsFor = (dh, key) => dhGitmedi(dh, key) ? [] : dhSlotsAll(dh, key);
+const dhTotalMin = slots => slots.reduce((a, s) => a + Math.max(0, dhMin(s.end) - dhMin(s.start)), 0);
+/* günlük süre bütçesi − dershane süresi (en az 0). budgets: 7 sayılık dizi (Pzt…Paz) */
+const dhCapacity = (dh, budgets, key) => Math.max(0, (+budgets[dhDayIdx(key)] || 0) - dhTotalMin(dhSlotsFor(dh, key)));
+/* şu an dershanede mi? now: Date (yerel saat). {slot, remainingMin, dateKey} | null */
+function dhCurrent(dh, now) {
+  const key = dhDayKey(now), cur = now.getHours() * 60 + now.getMinutes();
+  for (const s of dhSlotsFor(dh, key)) { const a = dhMin(s.start), b = dhMin(s.end); if (cur >= a && cur < b) return { slot: s, remainingMin: b - cur, dateKey: key }; }
+  return null;
+}
+/* saatli görev bir slotla çakışıyor mu? start 'HH:MM', süre dk; çakışan slot ya da null */
+function dhClash(slots, start, durationMin) {
+  const a = dhMin(start); if (!(a >= 0)) return null; const b = a + Math.max(1, +durationMin || 0);
+  return slots.find(s => a < dhMin(s.end) && b > dhMin(s.start)) || null;
+}
+/* aynı gün çakışma var mı (düzenlerken ignoreId hariç)? çakışan slotu döndürür */
+const dhConflict = (slots, day, start, end, ignoreId) => slots.find(s => s.id !== ignoreId && s.day === day && dhMin(start) < dhMin(s.end) && dhMin(end) > dhMin(s.start)) || null;
+/* ===== DERSHANE-PURE-END ===== */
 /* ===== LINKS-PURE-BEGIN: görev↔kitap bağlantısı saf fonksiyonları (DOM/state kullanmaz; node birim testleri bu bloğu ayıklar) ===== */
 const lkLower = s => String(s ?? '').toLocaleLowerCase('tr-TR');
 const lkKey = s => lkLower(s).replace(/[\s\p{P}\p{S}]+/gu, '');
@@ -830,7 +882,7 @@ function defaultState() {
     profile: { name: '', gender: '', themeChoice: '', skipped: false, studentName: '', examDate: null, dailyMinutes: { 0: 120, 1: 120, 2: 120, 3: 120, 4: 120, 5: 240, 6: 180 }, theme: 'auto' },
     settings: { apiKey: '', model: 'claude-sonnet-5-5', dataUrl: '', analysisYears: null, useWebSearch: true },
     subjects: embedded.subjects.map((s, i) => ({ id: s.id, name: s.name, shortName: SUBJ_SHORT[s.id] || s.name.slice(0, 12), emoji: SUBJ_EMOJI[s.id] || '📘', color: s.color, lgsSubjectId: s.id, visible: true, order: i })),
-    books: [], topicOverrides: {}, activity: [], plans: {},
+    books: [], topicOverrides: {}, activity: [], plans: {}, dershane: { slots: [], exceptions: {} },
     lgsDataOverride: null, lgsDataMeta: { source: 'embedded', appliedAt: null, previous: null },
     ui: { lastRoute: '#program', bookSubject: 'all' },
     meta: { importTimesCleared: true }
@@ -877,6 +929,7 @@ function migrateState(s) {
     p.dayNotes = [0, 1, 2, 3, 4, 5, 6].map(i => String(p.dayNotes[i] ?? '').slice(0, 200));
   }
   if (!m.topicOverrides || typeof m.topicOverrides !== 'object') m.topicOverrides = {};
+  m.dershane = dhSanitize(s.dershane, uid);
   m.meta = Object.assign({}, s.meta || {}); m.meta.linksMigrated = true;
   if (!m.meta.modifiedAt) m.meta.modifiedAt = '1970-01-01T00:00:00.000Z';
   if (!m.meta.importTimesCleared) {
@@ -1259,6 +1312,7 @@ function reportText() {
   const nm = heroName();
   const lines = [`📅 ${nm ? nm + ' · ' : ''}${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })} — ${di.list.length ? `${di.done}/${di.list.length} görev ✔` : 'bugün için program yok'}`];
   di.list.forEach(s => { const b = sessBook(s); lines.push(`${s.done ? '✅' : '⬜'} ${subjShort(s.subjectId)}: ${s.title || subjShort(s.subjectId)}${b ? ' — ' + b.title : ''}`); });
+  { const all = dhSlotsAll(state.dershane, t); if (all.length) lines.push(dhGitmedi(state.dershane, t) ? '🏫 Bugün dershaneye gitmedi' : '🏫 Dershane: ' + all.map(s => dhStr(dhMin(s.start)) + '–' + dhStr(dhMin(s.end))).join(', ')); }
   lines.push(`Bu hafta (bugüne kadar): ${sofar.done}/${sofar.n}` + (days != null && days >= 0 ? ` · LGS'ye ${days} gün` : ''));
   return lines.join('\n');
 }
@@ -1268,6 +1322,13 @@ async function shareReport() {
   try { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener'); } catch (e) { /* yoksay */ }
   try { await navigator.clipboard.writeText(text); showToast('Rapor panoya kopyalandı', 'success'); } catch (e) { showToast('Rapor WhatsApp\'ta açıldı', 'info'); }
 }
+let vDhRendered = '';
+const dhNowSig = () => { const n = new Date(), c = currentDershane(n), k = todayKey(); return k + '|' + (c ? c.slot.id + ':' + c.remainingMin : '-') + '|' + (dhGitmedi(state.dershane, k) ? 'g' : ''); };
+function dhTick() {
+  if (parseRoute().name !== 'veli' || dhNowSig() === vDhRendered) return;
+  if (document.querySelector('dialog[open]')) return;
+  rerender(true);
+}
 function viewVeli(root) {
   const page = el('div', { class: 'page' }); root.appendChild(page);
   const t = todayKey(), ws = weekStartKey(new Date()), days = daysToExam();
@@ -1276,6 +1337,11 @@ function viewVeli(root) {
     el('div', { class: 'row between' }, [el('h1', { text: heroName() ? `👨‍👩‍👦 ${heroName()} · Veli sayfası` : '👨‍👩‍👦 Veli sayfası' }), days != null && days >= 0 ? el('span', { class: 'badge-count', text: `LGS'ye ${days} gün` }) : null]),
     isReader() ? el('div', { class: 'small muted', text: sync.remoteUpdatedAt ? `Son güncelleme: ${fmtWhen(sync.remoteUpdatedAt)} (öğrencinin cihazından)` : 'Henüz veri alınmadı.' }) : null,
     isReader() && sync.status === 'err' ? el('div', { class: 'small err', text: sync.err }) : null]));
+  // dershane (şu an / bugün gitmedi)
+  vDhRendered = dhNowSig();
+  const dnow = currentDershane(new Date()), nmv = heroName() || 'Öğrenci';
+  if (dnow) page.appendChild(el('section', { class: 'card vcard dhnow', role: 'status' }, [el('div', { class: 'row' }, [el('span', { class: 'dhemoji', 'aria-hidden': 'true', text: '🏫' }), el('b', { text: nmv + ' şu an dershanede (' + dhStr(dhMin(dnow.slot.start)) + '–' + dhStr(dhMin(dnow.slot.end)) + ' · ' + fmtMin(dnow.remainingMin) + ' kaldı)' })])]));
+  else if (dhGitmedi(state.dershane, t) && dhSlotsAll(state.dershane, t).length) page.appendChild(el('section', { class: 'banner vcard dhgone', role: 'status' }, [el('b', { text: nmv + ' bugün dershaneye gitmedi. Bu güne görev önerebilirsin.' })]));
   // bugün
   const today = el('section', { class: 'card vcard' }, [el('h2', { text: `Bugün · ${fmtDate(t, { day: 'numeric', month: 'long', weekday: 'long' })}` })]);
   if (!di.list.length) today.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '🌤️' }), el('p', { text: 'Bugün için program yok.' })]));
@@ -1505,19 +1571,23 @@ function ensurePlan(ws, source = 'manual') {
   if (!Array.isArray(state.plans[ws].dayNotes)) state.plans[ws].dayNotes = blankNotes();
   return state.plans[ws];
 }
+const dershaneSlotsFor = key => dhSlotsFor(state.dershane, key);
+const dayCapacityMin = key => dhCapacity(state.dershane, dayBudgets(), key);
+const currentDershane = now => dhCurrent(state.dershane, now || new Date());
 function dayBudgets() { return [0, 1, 2, 3, 4, 5, 6].map(d => Math.max(0, +state.profile.dailyMinutes[d] || 0)); }
 function dayTotals(plan) { const t = [0, 0, 0, 0, 0, 0, 0]; (plan?.sessions || []).forEach(s => { t[s.day] += s.durationMin; }); return t; }
 
 function generateRulePlan(ws) {
   const years = selectedYears();
-  const budgets = dayBudgets();
+  const budgets = [0, 1, 2, 3, 4, 5, 6].map(d => dayCapacityMin(addDays(ws, d)));
+  const dayBase = [0, 1, 2, 3, 4, 5, 6].map(d => { const b = d >= 5 ? 600 : 1020, sl = dershaneSlotsFor(addDays(ws, d)); return sl.length ? Math.max(b, dhMin(sl[sl.length - 1].end)) : b; });
   const exOff = daysBetween(ws, examDateStr() || '2100-01-01');
   if (exOff < 0) budgets.fill(0); else if (exOff <= 6) for (let d = exOff; d < 7; d++) budgets[d] = 0;
   const daysLeft = daysToExam() ?? 999;
   const sessions = [];
   const offset = [0, 0, 0, 0, 0, 0, 0];
   if (budgets[6] >= 80) {
-    sessions.push({ id: uid(), day: 6, start: '10:00', durationMin: 80, subjectId: '', lgsTopicId: null, links: [], applied: [], title: 'Deneme / karışık tekrar', done: false });
+    sessions.push({ id: uid(), day: 6, start: timeStr(dayBase[6]), durationMin: 80, subjectId: '', lgsTopicId: null, links: [], applied: [], title: 'Deneme / karışık tekrar', done: false });
     budgets[6] -= 80; offset[6] = 80;
   }
   const subs = activeLgsSubjects().map(({ st, ls }) => {
@@ -1550,7 +1620,7 @@ function generateRulePlan(ws) {
       bookId = li.book.id; itemId = li.item.id; amt = n || 1;
       title += ` — ${li.book.title}` + (n ? ` (${n} ${li.item.unit})` : '');
     } else title += c.review ? ' — genel tekrar' : ' — konu çalışması';
-    const base = d >= 5 ? 600 : 1020;
+    const base = dayBase[d];
     sessions.push({ id: uid(), day: d, start: timeStr(base + offset[d] + tUsed[d] + 10 * Math.floor(cnt[d] / 2)), durationMin: 40, subjectId: s.st.id, lgsTopicId: c.t.id, links: bookId ? [{ bookId, itemId, amount: amt }] : [], applied: [], title, done: false });
     perDay[d][s.st.id] = (perDay[d][s.st.id] || 0) + 1; remaining[s.st.id]--; tUsed[d] += 40; cnt[d]++;
     return true;
@@ -1786,7 +1856,7 @@ function weekContext(ws) {
 async function aiSuggestWeek(ws, userNote) {
   const days = daysToExam();
   const user = `Hafta: ${ws} (Pazartesi) – ${addDays(ws, 6)}. Bugün: ${todayKey()}. LGS tarihi: ${days == null ? 'girilmedi' : `${examDateStr()} (${days} gün kaldı)`}.
-Günlük dakika bütçesi (0=Pzt…6=Paz): ${JSON.stringify(dayBudgets())}
+Günlük dakika bütçesi (0=Pzt…6=Paz; dershane süresi düşülmüş): ${JSON.stringify([0, 1, 2, 3, 4, 5, 6].map(d => dayCapacityMin(addDays(ws, d))))}
 Ek istek (veliden/öğrenciden): ${userNote || 'yok'}
 Dersler ve konular (JSON):
 ${JSON.stringify(weekContext(ws))}`;
@@ -2136,8 +2206,9 @@ function viewProgram(root) {
   const strip = el('div', { class: 'daystrip no-print' }); let selPill = null;
   for (let i = 0; i < 7; i++) {
     const k = addDays(ws, i); const list = sortedDay(plan, i); const dn = list.filter(s => s.done).length;
-    const pill = el('button', { type: 'button', class: 'dpill' + (i === d ? ' sel' : '') + (k === todayKey() ? ' today' : '') + (list.length && dn === list.length ? ' full' : ''), 'aria-label': `${DAY_NAMES[i]} ${parseKey(k).getDate()}`, onClick: () => { ui.selDay = i; rerender(true); } },
-      [el('span', { class: 'dn', text: DAY_SHORT[i] }), el('span', { class: 'dd', text: String(parseKey(k).getDate()) }), el('span', { class: 'dc', text: list.length ? `${dn}/${list.length}` : '·' })]);
+    const hasDh = dershaneSlotsFor(k).length > 0;
+    const pill = el('button', { type: 'button', class: 'dpill' + (i === d ? ' sel' : '') + (k === todayKey() ? ' today' : '') + (list.length && dn === list.length ? ' full' : ''), 'aria-label': `${DAY_NAMES[i]} ${parseKey(k).getDate()}${hasDh ? ', dershane var' : ''}`, onClick: () => { ui.selDay = i; rerender(true); } },
+      [el('span', { class: 'dn', text: DAY_SHORT[i] }), el('span', { class: 'dd', text: String(parseKey(k).getDate()) }), el('span', { class: 'dc', text: list.length ? `${dn}/${list.length}` : '·' }), hasDh ? el('span', { class: 'dhico', 'aria-hidden': 'true', text: '🏫' }) : null]);
     if (i === d) selPill = pill; strip.appendChild(pill);
   }
   page.appendChild(strip);
@@ -2160,11 +2231,27 @@ function viewProgram(root) {
   const pg = el('section', { class: 'daypage no-print' });
   pg.appendChild(el('h2', { class: 'daytitle', text: `${DAY_NAMES[d]}, ${fmtDate(k, { day: 'numeric', month: 'long' })}` }));
   pg.appendChild(noteRow(ws, d, plan, !!pv || isReader()));
-  list.forEach(s => pg.appendChild(taskCard(s, ws, !!pv || isReader())));
+  const dband = dershaneBand(k, !!pv || isReader()); if (dband) pg.appendChild(dband);
+  let afterDone = !dershaneSlotsFor(k).length;
+  list.forEach(s => { if (!afterDone && !s.start) { pg.appendChild(el('div', { class: 'dhafter', text: 'Dershaneden sonra' })); afterDone = true; } pg.appendChild(taskCard(s, ws, !!pv || isReader())); });
   if (!list.length) pg.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'bigemoji', text: '🌤️' }), el('p', { text: `${k === todayKey() ? 'Bugün' : 'Bu gün'} için görev yok.` })]));
   if (!pv) pg.appendChild(el('button', { type: 'button', class: 'btn primary addtask', text: '➕ Görev ekle', onClick: () => taskSheet(ws, null, d) }));
   page.appendChild(pg);
   page.appendChild(printWeek(plan, ws));
+}
+/* Programım gün sayfasında dershane şeridi: "Dershane 17:00 – 20:00" + "Bugün gitmedim" / "Geri al" */
+const dhRange = s => dhStr(dhMin(s.start)) + ' – ' + dhStr(dhMin(s.end));
+function dershaneBand(k, readonly) {
+  const all = dhSlotsAll(state.dershane, k); if (!all.length) return null;
+  const off = dhGitmedi(state.dershane, k), isToday = k === todayKey();
+  const setEx = v => { if (readerGuard()) return; if (v) state.dershane.exceptions[k] = 'gitmedi'; else delete state.dershane.exceptions[k]; changed(); showToast(v ? 'Tamam, günü boş bıraktım.' : 'Dershane geri geldi.', 'info'); };
+  const box = el('div', { class: 'dhband' + (off ? ' off' : ''), role: 'group', 'aria-label': 'Dershane' });
+  box.appendChild(el('div', { class: 'dhrow' }, [el('span', { class: 'dhemoji', 'aria-hidden': 'true', text: '🏫' }),
+    el('div', { class: 'grow' }, off
+      ? [el('b', { text: (isToday ? 'Bugün' : 'Bu gün') + ' dershaneye gitmedin.' }), el('div', { class: 'small', text: 'Veliye haber gitti, gün boş kaldı.' })]
+      : [el('b', { text: 'Dershane ' + all.map(dhRange).join(' · ') })])]));
+  if (!readonly) box.appendChild(btn(off ? 'Geri al' : (isToday ? 'Bugün gitmedim' : 'Bu gün gitmedim'), () => setEx(!off), 'sm dhbtn'));
+  return box;
 }
 function printWeek(plan, ws) {
   const box = el('div', { class: 'print-only' }, [el('h2', { text: `LGS Programım — ${weekRange(ws)}` })]);
@@ -2209,6 +2296,8 @@ function taskCard(s, ws, readonly) {
   const c = el('div', { class: 'task' + (s.done ? ' isdone' : '') + (ui.justDone === s.id ? ' pop' : ''), style: `--sc:${col}`, 'data-id': s.id }, [
     el('span', { class: 'temoji', text: subjEmoji(s.subjectId) }),
     el('div', { class: 'tinfo' }, [el('div', { class: 'ttitle', text: s.title || subjShort(s.subjectId) }), el('div', { class: 'tsub', text: sub }), ...lts.slice(0, 2).map(t => el('div', { class: 'tsub tlink', text: '📚 ' + t })), lts.length > 2 ? el('div', { class: 'tsub tlink', text: `+${lts.length - 2} kitap daha` }) : null, s.reason ? el('div', { class: 'tsub', text: s.reason }) : null])]);
+  const clash = s.start ? dhClash(dershaneSlotsFor(addDays(ws, s.day)), s.start, s.durationMin) : null;
+  if (clash) c.querySelector('.tinfo').appendChild(el('div', { class: 'dhwarn', text: '🏫 Dershane saatine denk geliyor (' + dhRange(clash) + ')' }));
   if (!readonly) {
     const cb = el('button', { type: 'button', class: 'check' + (s.done ? ' on' : ''), role: 'checkbox', 'aria-checked': String(!!s.done), 'aria-label': 'Tamamlandı', text: s.done ? '✓' : '' });
     cb.addEventListener('click', e => { e.stopPropagation(); toggleDone(ws, s); });
@@ -2629,9 +2718,9 @@ function parseBulk(text, topics) {
 }
 function addTopicToWeek(topicId, subjectStateId, topicName) {
   const ws = weekStartKey(new Date()); const plan = ensurePlan(ws);
-  const budgets = dayBudgets(), tot = dayTotals(plan);
+  const tot = dayTotals(plan);
   let best = 0, bestRem = -Infinity;
-  for (let d = 0; d < 7; d++) { const rem = budgets[d] - tot[d]; if (rem > bestRem) { bestRem = rem; best = d; } }
+  for (let d = 0; d < 7; d++) { const rem = dayCapacityMin(addDays(ws, d)) - tot[d]; if (rem > bestRem) { bestRem = rem; best = d; } }
   const li = linkedItems(topicId).find(x => !itemComplete(x.item));
   plan.sessions.push({ id: uid(), day: best, start: '', durationMin: 40, subjectId: subjectStateId, lgsTopicId: topicId, links: li ? [{ bookId: li.book.id, itemId: li.item.id, amount: 1 }] : [], applied: [], title: topicName + (li ? ' — ' + li.book.title : ''), done: false, order: nextOrder(plan) });
   changed(); showToast(`Bu haftanın programına eklendi (${DAY_NAMES[best]})`, 'success');
@@ -2952,6 +3041,44 @@ function unlinkedTasks() {
   Object.keys(state.plans).sort().forEach(ws => state.plans[ws].sessions.forEach(s => { if (s.unlinked && !s.done && !(s.links || []).length) out.push({ ws, s }); }));
   return out;
 }
+/* Ayarlar → Dershane: gün + saat aralığı listesi; yalnız öğrenci cihazında düzenlenir */
+function dershaneSheet(slot) {
+  const isNew = !slot;
+  const days = new Set(slot ? [slot.day] : []);
+  const dayStrip = el('div', { class: 'chips', role: 'group', 'aria-label': 'Hangi günler?' });
+  const paint = () => [...dayStrip.children].forEach((c, i) => { c.classList.toggle('on', days.has(i)); c.setAttribute('aria-pressed', String(days.has(i))); });
+  DAY_NAMES.forEach((n, i) => dayStrip.appendChild(el('button', { type: 'button', class: 'chip', text: n, onClick: () => { if (!isNew) { days.clear(); days.add(i); } else if (days.has(i)) days.delete(i); else days.add(i); paint(); } })));
+  paint();
+  const sIn = el('input', { type: 'time', value: slot ? slot.start : '17:00', 'aria-label': 'Başlangıç saati' });
+  const eIn = el('input', { type: 'time', value: slot ? slot.end : '20:00', 'aria-label': 'Bitiş saati' });
+  const err = el('p', { class: 'small err', role: 'alert' });
+  const m = openModal({ title: isNew ? 'Dershane saati ekle' : 'Dershane saatini düzenle', sheet: true,
+    body: el('div', { class: 'sheetbody' }, [el('div', { class: 'flabel', text: isNew ? 'Hangi günler?' : 'Hangi gün?' }), dayStrip,
+      el('div', { class: 'formgrid' }, [el('label', { class: 'f' }, ['Başlangıç', sIn]), el('label', { class: 'f' }, ['Bitiş', eIn])]), err]),
+    buttons: [{ label: 'Vazgeç' }, { label: 'Kaydet', cls: 'primary', onClick: () => {
+      const a = dhMin(sIn.value), b = dhMin(eIn.value);
+      if (!days.size) { err.textContent = 'En az bir gün seç.'; return false; }
+      if (!(a >= 0) || !(b >= 0)) { err.textContent = 'Başlangıç ve bitiş saatini yaz.'; return false; }
+      if (b <= a) { err.textContent = 'Bitiş saati başlangıçtan sonra olmalı.'; return false; }
+      for (const day of days) { const c = dhConflict(state.dershane.slots, day, sIn.value, eIn.value, slot && slot.id); if (c) { err.textContent = DAY_NAMES[day] + ' günü ' + dhRange(c) + ' ile çakışıyor.'; return false; } }
+      if (state.dershane.slots.length + (isNew ? days.size : 0) > 28) { err.textContent = 'Çok fazla dershane saati var.'; return false; }
+      if (isReader()) return false;
+      if (isNew) days.forEach(day => state.dershane.slots.push({ id: uid(), day, start: dhStr(a), end: dhStr(b) }));
+      else { slot.day = [...days][0]; slot.start = dhStr(a); slot.end = dhStr(b); }
+      state.dershane = dhSanitize(state.dershane, uid); changed(); showToast('Dershane saati kaydedildi', 'success');
+    } }] });
+  return m;
+}
+function dershaneCard() {
+  const slots = state.dershane.slots, ro = isReader();
+  const kids = [el('p', { class: 'small', text: ro ? 'Öğrencinin dershane günleri ve saatleri (öğrencinin cihazından).' : 'Dershane günlerin ve saatlerin. Değiştirmediğin sürece her hafta aynı kalır.' })];
+  if (!slots.length) kids.push(el('p', { class: 'muted', text: ro ? 'Dershane saati girilmemiş.' : 'Henüz dershane saati yok.' }));
+  slots.forEach(s => kids.push(el('div', { class: 'row subjrow dhslot' }, [el('span', { class: 'grow', text: DAY_NAMES[s.day] + ' · ' + dhRange(s) }),
+    ro ? null : btn('Düzenle', () => dershaneSheet(s), 'sm'),
+    ro ? null : btn('Sil', async () => { if (await confirmDialog(DAY_NAMES[s.day] + ' ' + dhRange(s) + ' dershane saati silinecek.', 'Sil', true)) { state.dershane.slots = state.dershane.slots.filter(x => x.id !== s.id); changed(); } }, 'sm danger')])));
+  if (!ro) kids.push(btn('＋ Dershane saati ekle', () => dershaneSheet(null), 'primary'));
+  return card('Dershane', el('div', { class: 'stack' }, kids));
+}
 function viewSettings(root) {
   const page = el('div', { class: 'page wide' }); root.appendChild(page);
   page.appendChild(el('div', { class: 'row between', style: 'margin-bottom:10px' }, [el('h1', { class: 'ptitle', style: 'margin:0', text: '⚙ Ayarlar' }), btn('‹ Geri', () => navigate('#program'), 'sm')]));
@@ -2969,6 +3096,7 @@ function viewSettings(root) {
   g.appendChild(card('Profil', [el('div', { class: 'stack' }, [profileBlock, lab('LGS tarihi (boş = veriden)', dateIn), btn('Veriden sıfırla', () => { p.examDate = null; changed(); }, 'sm'), lab('Tema', themeSel),
     el('h3', { text: 'Otomatik öneri için günlük çalışma süren (dk)', style: 'font-size:16px' }), el('div', { class: 'formgrid' }, dmIns.map(([n, i]) => lab(n, i))),
     btn('Pazartesi değerini hafta içine uygula', () => { for (let i = 1; i < 5; i++) p.dailyMinutes[i] = p.dailyMinutes[0]; changed(); }, 'sm')])]));
+  g.appendChild(dershaneCard());
   g.appendChild(syncCard());
   // dersleri yönet
   const rows = state.subjects.slice().sort((a, b) => a.order - b.order).map(s => {
@@ -3047,6 +3175,7 @@ function viewSettings(root) {
 function init() {
   state = loadState();
   syncInit();
+  setInterval(dhTick, 20000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dhTick(); });
   applyTheme();
   window.addEventListener('hashchange', () => rerender(false));
   $('#btn-settings').addEventListener('click', () => navigate('#ayarlar'));

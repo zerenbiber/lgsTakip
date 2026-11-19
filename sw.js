@@ -1,6 +1,6 @@
 /* LGS Takip service worker.
    NOT: Her sürümde CACHE adını (lgs-takip-vN) artır; böylece eski önbellek silinir ve güncelleme gelir. */
-const CACHE = 'lgs-takip-v13';
+const CACHE = 'lgs-takip-v14';
 const CHART = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'icon.svg'];
 const SHELL_URLS = new Set(SHELL.map(p => new URL(p, self.location).href));
